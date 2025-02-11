@@ -1,0 +1,97 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{
+    CS 677 Project Proposal: Pattern Recognition Applications in VLSI
+}
+
+% Authors 
+\author{
+    \IEEEauthorblockN{Ian S. Jackson}
+    \IEEEauthorblockA{\textit{Lane Department of Computer Science and Electrical Engineering} \\
+    \textit{West Virginia University}\\
+            Morgantown, United States \\
+            isj0001@mix.wvu.edu}
+    % \and
+    % \IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
+    % \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+    % \textit{name of organization (of Aff.)}\\
+    %         City, Country \\
+    %         email address or ORCID}
+    % \and
+    % \IEEEauthorblockN{3\textsuperscript{rd} Given Name Surname}
+    % \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+    % \textit{name of organization (of Aff.)}\\
+    %         City, Country \\
+    %         email address or ORCID}
+    % \and
+}
+
+\maketitle
+
+\section{Introduction}
+The integration of pattern recognition techniques into VLSI design has allowed for enhancing the efficiency and performance of integrated circuit design. 
+As the complexity and demand of semiconductor manufacturing and design grows, leveraging machine learning becomes increasingly important in addressing challenges such as defect detection, and timing analysis. 
+This proposal outlines two potential projects that explore the application of pattern recognition in areas of VLSI.
+
+\section{Potential Projects}
+\subsection{Defect Detection in Semiconductor Wafers Using Image Classification}
+\textbf{Objective:} The objective of this project is to develop a machine learning model capable of classifying wafer images into different defect categories. By leveraging image classification techniques, the system can automate the defect detection process and provide insights into common failure modes.
+
+\textbf{Dataset:} The targeted dataset for this project is the WM-811K Wafer Map Dataset \cite{b1}. The dataset contains 811,457 wafer maps collected from 46,393 lots in real-world fabrication, with defect types of: Center, Donut, Edge-Loc, Edge-Ring, Loc, Random, Scratch, Near-full, and none.
+
+\textbf{Model Development:} The project will use CNNs to extract features and classify defects. As well as, experiment with alternative models such as support vector machines (SVMs) or decision trees with manually extracted image features.
+The model will be evaluated by metrics such as accuracy, precision, recall, and F1-score to evaluate model performance.
+
+This project aims to deliver:
+A trained and validated machine learning model capable of accurately classifying semiconductor wafer defects,
+visualizations of correctly classified and misclassified images, and
+a comprehensive report summarizing the methodology, results, and recommendations for further enhancements.
+
+\subsection{Predicting Timing Violations in VLSI Circuits}
+\textbf{Objective:} The objective of this project is to develop a machine learning model that predicts potential timing violations based on circuit design parameters and layout data. 
+This predictive tool will help identify high-risk areas during the early stages of design, minimizing the likelihood of post-layout fixes.
+
+\textbf{Dataset:} This project will utilize benchmark or open-source VLSI datasets containing circuit design parameters, layout data, and timing information.
+Using open-source VLSI tools such as OpenTimer \cite{b2} or OpenROAD \cite{b3}, the simulation of timing constraints and the extraction of relevant design parameters can be obtained.
+
+\textbf{Model Development:} The development will consist of train machine learning models such as linear regression, support vector machines (SVMs), and neural networks to predict timing violations.
+The model will be evaluated using standard metrics such as precision, recall, F1-score, and mean squared error (MSE).
+The model's predictions will be compared against the ground truth timing data.
+
+This project aims to deliver:
+A machine learning model capable of predicting timing violations with high accuracy,
+insights into the design characteristics most associated with timing risks, and
+visualizations of predicted high-risk paths for improved understanding and decision-making.
+
+% \subsection{Feature Extraction for Power Estimation in VLSI Circuits}
+% \textbf{Objective:} 
+
+% \textbf{Dataset:} 
+
+% \textbf{Model Development:} 
+
+\section{Comparison of Options}
+Both Option A (Defect Detection) and Option B (Predicting Timing Violations) apply pattern recognition to VLSI but focus on different challenges: manufacturing quality or design reliability.
+Option A does not require any EDA tools to achieve the objective; however, option B requires the use of open source EDA tools to extract design parameters and timing information.
+With Option B, there might be the issue of dataset accessibility, as the availability of open-source VLSI datasets with large number of designs may be limited.
+
+\section{Conclusion}
+Either project topic will provide valuable insights into the application of pattern recognition in VLSI design. These both align with the course objectives as well as my area of work.
+
+\begin{thebibliography}{00}
+\bibitem{b1} Q. Yi, "WM811K Wafer Map Dataset," Kaggle, 2020. Available: https://www.kaggle.com/datasets/qingyi/wm811k-wafer-map. [Accessed: Jan. 28, 2025].
+\bibitem{b2} OpenTimer, "OpenTimer: A High-Performance Timing Analysis Tool," [Online]. Available: https://github.com/OpenTimer/OpenTimer. [Accessed: 28-Jan-2025].
+\bibitem{b3} The OpenROAD Project, "OpenROAD: An Open-Source EDA Tool," [Online]. Available: https://github.com/The-OpenROAD-Project/OpenROAD. [Accessed: 28-Jan-2025].
+\end{thebibliography}
+\end{document}
