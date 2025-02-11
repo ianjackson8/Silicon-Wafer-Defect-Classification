@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.10.1)  29 JAN 2025 18:25
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.10.1)  11 FEB 2025 14:05
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -7,7 +7,7 @@ entering extended mode
 (/Users/ianjackson/Documents/Spring 2025/CS 677/Project/Proposal/proposal_ij0001.tex
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
-(/usr/local/texlive/2024/texmf-dist/tex/latex/ieeetran/IEEEtran.cls
+(./IEEEtran.cls
 Document Class: IEEEtran 2015/08/26 V1.8b by Michael Shell
 -- See the "IEEEtran_HOWTO" manual for usage information.
 -- http://www.michaelshell.org/tex/ieeetran/
@@ -271,23 +271,16 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
  (/usr/local/texlive/2024/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-Underfull \hbox (badness 3769) in paragraph at lines 93--94
+LaTeX Font Info:    Trying to load font information for U+msa on input line 68.
+ (/usr/local/texlive/2024/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 68.
+ (/usr/local/texlive/2024/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+Underfull \hbox (badness 3769) in paragraph at lines 94--95
 []\OT1/ptm/m/n/8 Q. Yi, "WM811K Wafer Map Dataset," Kag-gle, 2020. Avail-
- []
-
-
-Underfull \hbox (badness 3364) in paragraph at lines 94--95
-\OT1/ptm/m/n/8 [On-line]. Avail-able: https://github.com/OpenTimer/OpenTimer. [Ac-
- []
-
-
-Underfull \hbox (badness 5331) in paragraph at lines 95--96
-[]\OT1/ptm/m/n/8 The Open-ROAD Project, "Open-ROAD: An Open-Source EDA
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 95--96
-\OT1/ptm/m/n/8 Tool," [On-line]. Avail-able: https://github.com/The-OpenROAD-
  []
 
 
@@ -311,15 +304,15 @@ L3 programming layer <2024-02-20>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 4101 strings out of 474116
- 64367 string characters out of 5743682
- 1940187 words of memory out of 5000000
- 26449 multiletter control sequences out of 15000+600000
- 586340 words of font info for 83 fonts, out of 8000000 for 9000
+ 4153 strings out of 474116
+ 65051 string characters out of 5743682
+ 1942187 words of memory out of 5000000
+ 26481 multiletter control sequences out of 15000+600000
+ 591809 words of font info for 100 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,8n,65p,422b,266s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,8n,65p,400b,266s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2024/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2024/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2024/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on proposal_ij0001.pdf (1 page, 46964 bytes).
+Output written on proposal_ij0001.pdf (1 page, 45367 bytes).
 PDF statistics:
  24 PDF objects out of 1000 (max. 8388607)
  14 compressed objects within 1 object stream
