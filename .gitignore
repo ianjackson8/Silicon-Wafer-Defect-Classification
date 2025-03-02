@@ -1,3 +1,11 @@
+# misc things
 .DS_Store
+
+# datasets
 WM811K.pkl
+Clean_Test_WM811K.pkl
+Clean_Train_WM811K.pkl
+
+# python things
 venv/*
+__pycache__/*
