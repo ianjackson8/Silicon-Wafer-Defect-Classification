@@ -9,3 +9,6 @@ Clean_Train_WM811K.pkl
 # python things
 venv/*
 __pycache__/*
+
+# models
+saved_models/*

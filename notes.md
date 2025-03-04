@@ -1,4 +1,11 @@
 # Model Logs
+Definitions:
+- Model A: Convolutional Neural Network 
+
+Table of Contents
+- [Model A1](#model-a1)
+- [Model A2](#model-a2)
+
 ## Model A1
 ### 🏗️ Model Architecture
 | Layer Type        | Output Shape          | Kernel/Stride | Activation | Notes |
@@ -16,6 +23,13 @@
 | Dropout (0.5)   | `(256)`               | -            | -          | Prevents overfitting |
 | Fully Connected | `(8)`                 | -            | Softmax    | Outputs class probabilities |
 
+- Convolutional Layers: 4
+- Fully connected layers: 2
+- Activation: ReLU
+- Dropout: 0.5
+- Loss Function: Cross Entropy Loss
+- Optimizer: Adam (lr=0.001)
+
 ### ⚙️ Hyperparameters
 | Parameter    | Value   |
 |-------------|--------|
@@ -25,17 +39,16 @@
 | Weight Decay | 1e-5   |
 
 ### 📊 Results
-| Epoch | Loss   | Accuracy |
-|-------|--------|----------|
-| 1     | 1.0572 | 0.6546   |
-| 2     |        |          |
-| 3     |        |          |
-| 4     |        |          |
-| 5     |        |          |
-| 6     |        |          |
-| 7     |        |          |
-| 8     |        |          |
-| 9     |        |          |
-| 10    |        |          |
+| Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
+|------------|--------|------------|----------------|---------------|----------|---------------------|-------|
+| Exp-1      | 10     | 0.3042     | 89.07%         | 65.3154%      | 0.6080   | 0.6699 s            | Initial test |
+| Exp-2      |        |            |                |               |          |                     |       |
+| Exp-3      |        |            |                |               |          |                     |       |
+
+Training Runtime: 4:08:35
 
 ### 📝 Observations & Adjustments
+- **Exp-1** Initial test: accuracy, F1, and inference time too low
+- change padding to be center instead of top-left
+
+## Model A2

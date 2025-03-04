@@ -2,7 +2,7 @@
 Defect Detection in Semiconductor Wafers Using Image Classification
 
 Author: Ian Jackson
-Version: v0.1
+Version: v1.0
 
 Requirements:
     - WM811K pkl file (see README)
@@ -13,6 +13,7 @@ Requirements:
 import argparse
 import torch
 import os
+import time
 
 import numpy as np
 import pandas as pd
@@ -20,10 +21,16 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from typing import Union, List
 from bcolors import *
 from torch.utils.data import DataLoader, Dataset
+from torchviz import make_dot
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
+from torchsummary import summary
+
 
 #== Global Variables ==#
 NUM_EPOCHS = 10
@@ -271,70 +278,108 @@ def main(args):
     train_dataset = WaferDataset(df=train_df)
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
-    # DEBUGGING
-    if False:
-        print("[D] Sample Training Data")
-        print("[D] train dataframe information")
-        print(train_df.info())
-
-        print("[D] train dataframe sample id=0")
-        sample = train_df.iloc[0]
-        print(f'\tdieSize: {sample["dieSize"]}')
-        print(f'\tfaultType: {sample["failureType"]}')
-        print(f'\tlotName: {sample["lotName"]}')
-        print(f'\trainTestLabel: {sample["trainTestLabel"]}')
-        print(f'\twaferIndex: {sample["waferIndex"]}')
-        print(f'\twaferMap: {sample["waferMap"]}')
-        print(f'\tfailureTypeVector: {sample["failureTypeVector"]}')
-        print(f'\trows: {sample["rows"]}')
-        print(f'\tcols: {sample["cols"]}')
-        print(f'\ttensor: {sample["tensor"].shape}')
-
-        wafer_2d = sample['tensor'].squeeze()
-        plt.imshow(wafer_2d, cmap='gray')  # Use grayscale for better visualization
-        plt.colorbar()  # Show color scale
-        plt.title("Wafer Map")
-        plt.show()
-        quit()
-
     #-- STEP 3: Train Model --#
-    # training loop
-    print("[i] Beginning training loop")
-    for epoch in range(NUM_EPOCHS):
-        model.train()
-        running_loss, correct, total = 0.0, 0, 0
+    if not os.path.exists('saved_models/model_A1.pth') and args.force:
+        # training loop
+        print("[i] Beginning training loop")
+        for epoch in range(NUM_EPOCHS):
+            model.train()
+            running_loss, correct, total = 0.0, 0, 0
 
-        for batch_idx, (images, labels) in enumerate(train_loader):
-            # zero gradients
-            optimizer.zero_grad()
+            for batch_idx, (images, labels) in enumerate(train_loader):
+                # zero gradients
+                optimizer.zero_grad()
 
-            # forward
+                # forward
+                outputs = model(images)
+
+                # compute loss
+                loss = criterion(outputs, labels)
+
+                # backward prop
+                loss.backward()
+
+                # update params 
+                optimizer.step()
+
+                # accumulate stats
+                running_loss += loss.item() * images.size(0)
+                _, predicted = torch.max(outputs, 1)
+                correct += (predicted == labels).sum().item()
+                total += labels.size(0)
+
+            train_loss = running_loss / total
+            train_acc = correct / total
+
+            print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], "
+                f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
+            
+        # save the model
+        torch.save(model.state_dict(), 'saved_models/model_A1.pth')
+        print("Model training complete and saved.")
+        model.eval()
+
+    # model already trained, load
+    else:
+        print("[i] Loading model from file")
+        model.load_state_dict(torch.load('saved_models/model_A1.pth'))
+        model.eval()
+
+    # visualize model 
+    if args.visualize:
+        summary(model, input_size=(1, 256, 256))
+        print("[i] Visualizing model")
+        x = torch.randn(1, 1, 256, 256)
+        y = model(x)
+        make_dot(y, params=dict(model.named_parameters())).render("model_A1", format="png")
+
+    # run the model on the test set
+    print("[i] Running model on test set")
+    test_dataset = WaferDataset(df=test_df)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    all_preds = []
+    all_labels = []
+
+    with torch.no_grad():
+        for images, labels in test_loader:
+            # measure inference time
+            start_time = time.time()
             outputs = model(images)
+            end_time = time.time()
 
-            # compute loss
-            loss = criterion(outputs, labels)
+            inference_time = end_time - start_time
 
-            # backward prop
-            loss.backward()
+            # get predicted classes
+            _, pred = torch.max(outputs, 1)
+            all_preds.extend(pred.numpy())
+            all_labels.extend(labels.numpy())
 
-            # update params 
-            optimizer.step()
+    # calculate accuracy and f1 score
+    accuracy = accuracy_score(all_labels, all_preds)
+    f1 = f1_score(all_labels, all_preds, average='weighted')
+    avg_inference_time = np.mean(inference_time)
 
-            # accumulate stats
-            running_loss += loss.item() * images.size(0)
-            _, predicted = torch.max(outputs, 1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
+    # compute confusion matrix
+    conf_matrix = confusion_matrix(all_labels, all_preds)
 
-        train_loss = running_loss / total
-        train_acc = correct / total
+    # per-class accuracy
+    class_report = classification_report(all_labels, all_preds, target_names=categories)
 
-        print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], "
-              f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
-        
-    # save the model
-    torch.save(model.state_dict(), 'waferCNN_model.pth')
-    print("Model training complete and saved.")
+    # print results
+    print(f"\tAccuracy: {accuracy*100:.4f}%")
+    print(f"\tF1 Score: {f1:.4f}")
+    print(f"\tAvg Inference Time/batch: {avg_inference_time:.4f} seconds")
+    print("\tPer-Class Accuracy Report:")
+    print(class_report)
+
+    # plot confusion matrix
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=categories, yticklabels=categories)
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.title("Confusion Matrix")
+    plt.show()
 
 if __name__ == "__main__":
     # argparse 
@@ -342,6 +387,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--calc_type_counts', action='store_true', help='Calculates and prints failure type counts from the dataset. Increases load time.')
     parser.add_argument('--force_load_dataset', action='store_true', help='Forces the dataset to be loaded even if it has been loaded already.')
+    parser.add_argument('--force', action='store_true', help='Forces the model to be trained even if it has been trained already.')
+    parser.add_argument('--visualize', action='store_true', help='Visualizes the model using torchviz.')
 
     args = parser.parse_args()
 
