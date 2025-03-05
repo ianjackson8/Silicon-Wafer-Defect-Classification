@@ -34,6 +34,7 @@ from torchsummary import summary
 
 #== Global Variables ==#
 NUM_EPOCHS = 10
+CUR_MODEL = 'saved_models/model_A1-exp3.pth'
 
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
@@ -279,9 +280,10 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
     #-- STEP 3: Train Model --#
-    if not os.path.exists('saved_models/model_A1.pth') and args.force:
+    if not os.path.exists(CUR_MODEL) and args.force:
         # training loop
         print("[i] Beginning training loop")
+        start_time = time.time()
         for epoch in range(NUM_EPOCHS):
             model.train()
             running_loss, correct, total = 0.0, 0, 0
@@ -313,16 +315,23 @@ def main(args):
 
             print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], "
                 f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
-            
+    
         # save the model
-        torch.save(model.state_dict(), 'saved_models/model_A1.pth')
-        print("Model training complete and saved.")
+        torch.save(model.state_dict(), CUR_MODEL)
+        print("[i] Model training complete and saved.")
         model.eval()
+
+        # train time
+        end_time = time.time()
+        total_time = end_time - start_time
+        hours, rem = divmod(total_time, 3600)
+        minutes, seconds = divmod(rem, 60)
+        print(f"[i] Total training time: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
 
     # model already trained, load
     else:
         print("[i] Loading model from file")
-        model.load_state_dict(torch.load('saved_models/model_A1.pth'))
+        model.load_state_dict(torch.load(CUR_MODEL))
         model.eval()
 
     # visualize model 

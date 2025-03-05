@@ -42,13 +42,16 @@ Table of Contents
 | Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
 |------------|--------|------------|----------------|---------------|----------|---------------------|-------|
 | Exp-1      | 10     | 0.3042     | 89.07%         | 65.3154%      | 0.6080   | 0.6699 s            | Initial test |
-| Exp-2      |        |            |                |               |          |                     |       |
+| Exp-2      | 20     | 0.1184     | 96.36%         | 49.5060%      | 0.4086   | 0.6591 s            | Increased epochs |
 | Exp-3      |        |            |                |               |          |                     |       |
 
-Training Runtime: 4:08:35
+Training Runtime: 
+- Exp1: 4:08:35
+- Exp2: N/A
 
 ### 📝 Observations & Adjustments
-- **Exp-1** Initial test: accuracy, F1, and inference time too low
+- **Exp-1** Initial test: accuracy, F1, and inference time too low -> double epochs
+- **Exp-2** Train accuracy incr, test accuracy dec therefore indicative of overfitting 
 - change padding to be center instead of top-left
 
 ## Model A2
