@@ -34,7 +34,7 @@ from torchsummary import summary
 
 #== Global Variables ==#
 NUM_EPOCHS = 10
-CUR_MODEL = 'saved_models/model_A1-exp3.pth'
+CUR_MODEL = 'saved_models/model_A1-exp1.pth'
 
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
@@ -62,15 +62,16 @@ class WaferDataset(Dataset):
 
         return wafer_img, label
 
-class WaferCNN(nn.Module):
+class WaferCNN_A1(nn.Module):
     def __init__(self, num_classes:int=8):
         '''
         initialization of CNN for Wafer Classification
+        Model A1
 
         Args:
             num_classes (int, optional): number of classes. Defaults to 8.
         '''
-        super(WaferCNN, self).__init__()
+        super(WaferCNN_A1, self).__init__()
 
         #= Block 1 =#
         # Input: 1×256×256
@@ -104,7 +105,7 @@ class WaferCNN(nn.Module):
         self.fc2 = nn.Linear(256, num_classes)     # final classification to 8 classes
 
         # Optionally, a dropout layer can be added in between fc1 and fc2:
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.6)
 
     def forward(self, x):
         #= Block 1 =#
@@ -136,6 +137,72 @@ class WaferCNN(nn.Module):
         x = self.fc2(x)
 
         return x
+
+class WaferCNN_A2(nn.Module):
+    def __init__(self, num_classes:int=8):
+        '''
+        initialization of CNN for Wafer Classification
+        Model A1
+
+        Args:
+            num_classes (int, optional): number of classes. Defaults to 8.
+        '''
+        super(WaferCNN_A2, self).__init__()
+
+        #= Block 1 =#
+        # Input: 1×256×256
+        # Output: 32×256×256  (conv), then 32×128×128 (pool)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
+        self.bn1   = nn.BatchNorm2d(32)
+        
+        #= Block 2 =#
+        # Input: 32×128×128
+        # Output: 64×128×128 (conv), then 64×64×64 (pool)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
+        self.bn2   = nn.BatchNorm2d(64)
+        
+        #= Block 3 =#
+        # Input: 64×64×64
+        # Output: 128×64×64 (conv), then 128×16×16 (pool)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.bn3   = nn.BatchNorm2d(128)
+        
+        # After the 3rd block, we expect feature maps of size 128×16×16 so the flattened size is 128 * 16 * 16 = 65536
+        
+        #= Fully Connected Layers =#
+        # You can reduce the dimension with one or two Dense layers
+        self.fc1 = nn.Linear(128 * 16 * 16, 128)   # from flattened feature map to 128
+        self.fc2 = nn.Linear(128, num_classes)     # final classification to 8 classes
+
+        # Optionally, a dropout layer can be added in between fc1 and fc2:
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        #= Block 1 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 2 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 3 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.max_pool2d(x, 4)
+
+        # Flatten
+        x = x.reshape(x.size(0), -1)
+
+        # fully connect layers
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+
+        return x
+
 
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
@@ -268,7 +335,7 @@ def main(args):
     #-- STEP 2: Prepare Model --#
     # initialize the model
     print("[i] Initializing model")
-    model = WaferCNN(num_classes=8)
+    model = WaferCNN_A2(num_classes=8)
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -278,6 +345,15 @@ def main(args):
     print("[i] Prepare dataloader")
     train_dataset = WaferDataset(df=train_df)
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    # visualize model 
+    if args.visualize:
+        print("[i] Visualizing model")
+        summary(model, input_size=(1, 256, 256))
+        x = torch.randn(1, 1, 256, 256)
+        y = model(x)
+        make_dot(y, params=dict(model.named_parameters())).render("model_A2", format="png")
+        quit()
 
     #-- STEP 3: Train Model --#
     if not os.path.exists(CUR_MODEL) and args.force:
@@ -334,14 +410,6 @@ def main(args):
         model.load_state_dict(torch.load(CUR_MODEL))
         model.eval()
 
-    # visualize model 
-    if args.visualize:
-        summary(model, input_size=(1, 256, 256))
-        print("[i] Visualizing model")
-        x = torch.randn(1, 1, 256, 256)
-        y = model(x)
-        make_dot(y, params=dict(model.named_parameters())).render("model_A1", format="png")
-
     # run the model on the test set
     print("[i] Running model on test set")
     test_dataset = WaferDataset(df=test_df)
@@ -388,7 +456,7 @@ def main(args):
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title("Confusion Matrix")
-    plt.show()
+    plt.savefig("confusion_matrix.png")
 
 if __name__ == "__main__":
     # argparse 
