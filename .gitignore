@@ -12,3 +12,11 @@ __pycache__/*
 
 # models
 saved_models/*
+
+# latex support files
+**/*.aux
+**/*.fls
+Report/*.log
+Proposal/*.log
+**/*.synctex.gz
+**/*.fdb_latexmk

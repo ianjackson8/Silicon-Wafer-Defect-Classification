@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1739300711.43932 "/Users/ianjackson/Documents/Spring 2025/CS 677/Project/Proposal/proposal_ij0001.tex" "proposal_ij0001.pdf" "proposal_ij0001" 1739300712.40972 0
-  "/Users/ianjackson/Documents/Spring 2025/CS 677/Project/Proposal/proposal_ij0001.tex" 1739300710.06486 5693 50626790b3d57850159b1a9d51c633c9 ""
+["pdflatex"] 1741548500.3444 "/Users/ianjackson/Documents/Spring 2025/CS 677/Project/Proposal/proposal_ij0001.tex" "proposal_ij0001.pdf" "proposal_ij0001" 1741548501.68066 0
+  "/Users/ianjackson/Documents/Spring 2025/CS 677/Project/Proposal/proposal_ij0001.tex" 1741548498.72354 5693 50626790b3d57850159b1a9d51c633c9 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/adobe/times/ptmb7t.tfm" 1136768653 2172 fd0c924230362ff848a33632ed45dc23 ""
@@ -63,9 +63,9 @@
   "/usr/local/texlive/2024/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1727795067.49656 5467645 128b85b7cde5f5edc5cb7f1dd7ff8736 ""
   "/usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt" 1727794909 8221427 f6f0dcd140ce91bd09ecb8ee1f8be0c9 ""
   "/usr/local/texlive/2024/texmf.cnf" 1710266656 577 e590dabc9e28c5b61546e15f63eebcdf ""
-  "IEEEtran.cls" 1731540048.48238 281957 5b2e4fa15b0f7eabb840ebf67df4c0f7 ""
-  "proposal_ij0001.aux" 1739300712.33098 853 d70a98486d6d409eb3fe9682be7c7cc3 "pdflatex"
-  "proposal_ij0001.tex" 1739300710.06486 5693 50626790b3d57850159b1a9d51c633c9 ""
+  "IEEEtran.cls" 1731540048 281957 5b2e4fa15b0f7eabb840ebf67df4c0f7 ""
+  "proposal_ij0001.aux" 1741548501.55938 853 d70a98486d6d409eb3fe9682be7c7cc3 "pdflatex"
+  "proposal_ij0001.tex" 1741548498.72354 5693 50626790b3d57850159b1a9d51c633c9 ""
   (generated)
   "proposal_ij0001.aux"
   "proposal_ij0001.log"

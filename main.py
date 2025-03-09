@@ -33,8 +33,8 @@ from torchsummary import summary
 
 
 #== Global Variables ==#
-NUM_EPOCHS = 10
-CUR_MODEL = 'saved_models/model_A1-exp1.pth'
+NUM_EPOCHS = 30
+CUR_MODEL = 'saved_models/model_A2-exp1.pth'
 
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
@@ -151,37 +151,37 @@ class WaferCNN_A2(nn.Module):
 
         #= Block 1 =#
         # Input: 1×256×256
-        # Output: 32×256×256  (conv), then 32×128×128 (pool)
+        # Output: 32×256×256  (conv), then 32×85×85 (pool)
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
         self.bn1   = nn.BatchNorm2d(32)
         
         #= Block 2 =#
-        # Input: 32×128×128
-        # Output: 64×128×128 (conv), then 64×64×64 (pool)
+        # Input: 32×85×85
+        # Output: 64×85×85 (conv), then 64×42×42 (pool)
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
         self.bn2   = nn.BatchNorm2d(64)
         
         #= Block 3 =#
-        # Input: 64×64×64
-        # Output: 128×64×64 (conv), then 128×16×16 (pool)
+        # Input: 64×42×42
+        # Output: 128×42×42 (conv), then 128×21×21 (pool)
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
         self.bn3   = nn.BatchNorm2d(128)
         
-        # After the 3rd block, we expect feature maps of size 128×16×16 so the flattened size is 128 * 16 * 16 = 65536
+        # After the 3rd block, we expect feature maps of size 128×21×21 so the flattened size is 128 * 21 * 21 = 56488
         
         #= Fully Connected Layers =#
         # You can reduce the dimension with one or two Dense layers
-        self.fc1 = nn.Linear(128 * 16 * 16, 128)   # from flattened feature map to 128
+        self.fc1 = nn.Linear(128 * 21 * 21, 128)   # from flattened feature map to 128
         self.fc2 = nn.Linear(128, num_classes)     # final classification to 8 classes
 
         # Optionally, a dropout layer can be added in between fc1 and fc2:
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.6)
 
     def forward(self, x):
         #= Block 1 =#
         # conv -> BatchNorm -> ReLU -> pool
         x = F.relu(self.bn1(self.conv1(x)))
-        x = F.max_pool2d(x, 2)
+        x = F.max_pool2d(x, 3)
 
         #= Block 2 =#
         # conv -> BatchNorm -> ReLU -> pool
@@ -191,7 +191,7 @@ class WaferCNN_A2(nn.Module):
         #= Block 3 =#
         # conv -> BatchNorm -> ReLU -> pool
         x = F.relu(self.bn3(self.conv3(x)))
-        x = F.max_pool2d(x, 4)
+        x = F.max_pool2d(x, 2)
 
         # Flatten
         x = x.reshape(x.size(0), -1)
@@ -202,7 +202,6 @@ class WaferCNN_A2(nn.Module):
         x = self.fc2(x)
 
         return x
-
 
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
@@ -339,7 +338,10 @@ def main(args):
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
+
+    # define scheduler (Reduce LR by 50% every 5 epochs)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
@@ -356,7 +358,7 @@ def main(args):
         quit()
 
     #-- STEP 3: Train Model --#
-    if not os.path.exists(CUR_MODEL) and args.force:
+    if not os.path.exists(CUR_MODEL) or args.force:
         # training loop
         print("[i] Beginning training loop")
         start_time = time.time()
@@ -388,6 +390,9 @@ def main(args):
 
             train_loss = running_loss / total
             train_acc = correct / total
+
+            # step scheduler
+            scheduler.step()
 
             print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], "
                 f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")

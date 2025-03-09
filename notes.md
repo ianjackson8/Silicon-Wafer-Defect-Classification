@@ -55,10 +55,11 @@ Table of Contents
 | Exp-9      | 40     | 0.0494     | 98.33%         | 68.8118%      | 0.6986   | 0.0050 s            | Increased epochs |
 
 ### 📝 Observations & Adjustments
-- **Exp-1** Initial test: accuracy, F1, and inference time too low -> double epochs
+- **Exp-1** Initial test: accuracy, F1, and inference time too low → double epochs
 - **Exp-2** Train accuracy incr, test accuracy dec therefore indicative of overfitting 
-- change padding to be center instead of top-left
-- TODO: rerun test dataset on exp 1-3
+- **Exp-3 → Exp-5** Test anti-overfitting methods
+- **Exp-6** Try all overfitting methods in one
+- **Exp-7 → Exp-9** Increase epochs until decrease in accuracy
 
 ### 🛠️ Tested overfitting methods
 - [x] Increase dropout rate ✅
@@ -68,29 +69,29 @@ Table of Contents
   - [ ] ReduceLROnPlateau
   - [ ] CosineAnnealing
 - [ ] Data augmentation (`torchvision.transform`)
-- [ ] Reduce number of filters or layers (A1→A2)
+- [x] Reduce number of filters or layers (A1→A2)
 
 ## Model A2
 ### 🏗️ Model Architecture
 | Layer Type        | Output Shape          | Kernel/Stride| Activation | Notes |
 |-------------------|-----------------------|--------------|------------|-------|
-| Conv2D (1 → 32)   | `(32, 256, 256)`      | `3x3 / 1`    | ReLU       | Extracts low-level features |
-| BatchNorm2D(32)   | `(32, 256, 256)`      | -            | -          | Normalizes activations |
-| MaxPool2D         | `(32, 128, 128)`      | `2x2 / 2`    | -          | Downsamples |
-| Conv2D (32 → 64)  | `(64, 128, 128)`      | `3x3 / 1`    | ReLU       | Extracts deeper features |
-| BatchNorm2D(64)   | `(64, 128, 128)`      | -            | -          | Improves training stability |
-| MaxPool2D         | `(64, 64, 64)`        | `2x2 / 2`    | -          | Reduces spatial size |
-| Conv2D (64 → 128) | `(128, 64, 64)`       | `3x3 / 1`    | ReLU       | Higher-level features |
-| BatchNorm2D(128)  | `(128, 64, 64)`       | -            | -          | Prevents internal covariate shift |
-| MaxPool2D         | `(128, 16, 16)`       | `4x4 / 2`    | -          | |
-| Fully Connected   | `(256)`               | -            | ReLU       | Dense features |
-| Dropout (0.5)     | `(256)`               | -            | -          | Prevents overfitting |
-| Fully Connected   | `(8)`                 | -            | Softmax    | Outputs class probabilities |
+| Conv2D (1 → 32)   | `(32, 256, 256)`      | `3x3 / 1`    | ReLU       |  |
+| BatchNorm2D(32)   | `(32, 256, 256)`      | -            | -          |  |
+| MaxPool2D         | `(32, 85,  85)`       | `3x3 / 3`    | -          | Early aggressive downsampling |
+| Conv2D (32 → 64)  | `(64, 85,  85)`       | `3x3 / 1`    | ReLU       |  |
+| BatchNorm2D(64)   | `(64, 85,  85)`       | -            | -          |  |
+| MaxPool2D         | `(64, 42, 42)`        | `2x2 / 2`    | -          |  |
+| Conv2D (64 → 128) | `(128, 42, 42)`       | `3x3 / 1`    | ReLU       |  |
+| BatchNorm2D(128)  | `(128, 42, 42)`       | -            | -          |  |
+| MaxPool2D         | `(128, 21, 21)`       | `2x2 / 2`    | -          |  |
+| Fully Connected   | `(256)`               | -            | ReLU       |  |
+| Dropout (0.6)     | `(256)`               | -            | -          |  |
+| Fully Connected   | `(8)`                 | -            | Softmax    |  |
 
 - Convolutional Layers: 3
 - Fully connected layers: 2
 - Activation: ReLU
-- Dropout: 0.5
+- Dropout: 0.6
 - Loss Function: Cross Entropy Loss
 - Optimizer: Adam (lr=0.001)
 
@@ -99,27 +100,26 @@ Table of Contents
 |-------------|--------|
 | Batch Size  | 32     |
 | Learning Rate | 0.001  |
-| Epochs      | 10     |
+| Epochs      | 30     |
 | Weight Decay | 1e-5   |
 
 ### 📊 Results
 | Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
 |------------|--------|------------|----------------|---------------|----------|---------------------|-------|
-| Exp-1      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
+| Exp-1      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
 | Exp-2      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
 | Exp-3      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
 | Exp-4      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
 | Exp-5      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
 
 ### 📝 Observations & Adjustments
-- 
+- c
+- change padding to be center instead of top-left
 
 ### 🛠️ Tested overfitting methods
 - [ ] Increase dropout rate 
-- [ ] Add weight decay (L2 regularization) 1e-4 
 - [ ] Use learning rate scheduling 
-  - [ ] StepLR 
   - [ ] ReduceLROnPlateau
   - [ ] CosineAnnealing
 - [ ] Data augmentation (`torchvision.transform`)
-- [ ] Reduce number of filters or layers (A1→A2)
+- [ ] Reduce number of filters or layers (A2→A3)
