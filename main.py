@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -31,7 +32,6 @@ from torchviz import make_dot
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from torchsummary import summary
 
-
 #== Global Variables ==#
 NUM_EPOCHS = 30
 CUR_MODEL = 'saved_models/model_A2-exp1.pth'
@@ -41,9 +41,10 @@ categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Do
 #== Classes ==#
 class WaferDataset(Dataset):
     # DOCUMENT: waferdataset class
-    def __init__(self, df, transform=None):
+    def __init__(self, df, transform=None, train=True):
         self.df = df
-        self.transform = transform
+        self.train = train
+        self.transform = transform if transform else self.default_transforms()
 
     def __len__(self):
         return len(self.df)
@@ -60,7 +61,18 @@ class WaferDataset(Dataset):
         label = torch.tensor(row['failureTypeVector'], dtype=torch.float32)  # Convert to tensor
         label = label.argmax().long()  # Convert one-hot vector to class index
 
+        # augmentation 
+        if self.transform and self.train:
+            wafer_img = self.transform(wafer_img)
+
         return wafer_img, label
+    
+    def default_transforms(self):
+        return transforms.Compose([
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(90)
+        ])
 
 class WaferCNN_A1(nn.Module):
     def __init__(self, num_classes:int=8):
@@ -277,7 +289,7 @@ def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.Dat
 
     return train_df, test_df
 
-def pad_wafer_map(wafer_map_2d: List[List], target_row=256, target_cols=256) -> np.array:
+def pad_wafer_map(wafer_map_2d: List[List], target_row=256, target_col=256) -> np.array:
     '''
     pad the 2D wafer map and convert to 3D numpy array of shape (target_row, target_col, 1)
 
@@ -294,7 +306,7 @@ def pad_wafer_map(wafer_map_2d: List[List], target_row=256, target_cols=256) -> 
     r,c = arr.shape
 
     # create target sized array of zeros
-    padded_arr = np.zeros((target_row, target_cols), dtype=arr.dtype)
+    padded_arr = np.zeros((target_row, target_col), dtype=arr.dtype)
 
     # copy to top-left corner
     padded_arr[:r, :c] = arr
@@ -345,7 +357,7 @@ def main(args):
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
-    train_dataset = WaferDataset(df=train_df)
+    train_dataset = WaferDataset(df=train_df, train=True)
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
     # visualize model 
@@ -417,7 +429,7 @@ def main(args):
 
     # run the model on the test set
     print("[i] Running model on test set")
-    test_dataset = WaferDataset(df=test_df)
+    test_dataset = WaferDataset(df=test_df, train=False)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
     all_preds = []

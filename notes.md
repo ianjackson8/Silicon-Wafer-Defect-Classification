@@ -34,12 +34,12 @@ Table of Contents
 - Optimizer: Adam (lr=0.001)
 
 ### ⚙️ Hyperparameters
-| Parameter    | Value   |
-|-------------|--------|
-| Batch Size  | 32     |
-| Learning Rate | 0.001  |
-| Epochs      | 30     |
-| Weight Decay | 1e-5   |
+| Parameter     | Value   |
+|---------------|---------|
+| Batch Size    | 32      |
+| Learning Rate | 0.001   |
+| Epochs        | 30      |
+| Weight Decay  | 1e-5    |
 
 ### 📊 Results
 | Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
@@ -51,8 +51,10 @@ Table of Contents
 | Exp-5      | 10     | 0.2425     | 90.89%         | 66.0122%      | 0.6312   | 0.0018 s            | StepLR ($\gamma$=0.5/5 epoch) |
 | Exp-6      | 10     | 0.2868     | 89.54%         | 60.9577%      | 0.5579   | 0.0012 s            | Dropout 0.5→0.6, L2 regularization, StepLR ($\gamma$=0.5/5 epoch) |
 | Exp-7      | 20     | 0.1616     | 94.36%         | 68.7611%      | 0.6735   | 0.0016 s            | Increased epochs |
-| Exp-8      | 30     | 0.0532     | 98.21%         | 69.2931%      | 0.7028   | 0.0089 s            | Increased epochs |
+| **Exp-8**  | 30     | 0.0532     | 98.21%         | 69.2931%      | 0.7028   | 0.0089 s            | Increased epochs |
 | Exp-9      | 40     | 0.0494     | 98.33%         | 68.8118%      | 0.6986   | 0.0050 s            | Increased epochs |
+| Exp-10     | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Introduce augmentation (H&V flip, pm 90 deg) |
+| Exp-11     | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 
 ### 📝 Observations & Adjustments
 - **Exp-1** Initial test: accuracy, F1, and inference time too low → double epochs
@@ -70,6 +72,7 @@ Table of Contents
   - [ ] CosineAnnealing
 - [ ] Data augmentation (`torchvision.transform`)
 - [x] Reduce number of filters or layers (A1→A2)
+- [ ] Increase number of filters or layers (A1→A3)
 
 ## Model A2
 ### 🏗️ Model Architecture
@@ -96,30 +99,34 @@ Table of Contents
 - Optimizer: Adam (lr=0.001)
 
 ### ⚙️ Hyperparameters
-| Parameter    | Value   |
-|-------------|--------|
-| Batch Size  | 32     |
-| Learning Rate | 0.001  |
-| Epochs      | 30     |
-| Weight Decay | 1e-5   |
+| Parameter     | Value   |
+|---------------|---------|
+| Batch Size    | 32      |
+| Learning Rate | 0.001   |
+| Epochs        | 30      |
+| Weight Decay  | 1e-5    |
 
 ### 📊 Results
 | Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
 |------------|--------|------------|----------------|---------------|----------|---------------------|-------|
-| Exp-1      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
-| Exp-2      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
-| Exp-3      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
-| Exp-4      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
-| Exp-5      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |       |
+| Exp-1      | 30     | 0.1857     | 92.59%         | 66.9116%      | 0.6382   | 0.0008 s            | Initial run |
+| Exp-2      | 30     | 0.2120     | 91.71%         | 65.6575%      | 0.6220   | 0.0007 s            | change padding to center |
+| **Exp-3**  | 30     | 0.2234     | 91.85%         | 67.2536%      | 0.6424   | 0.0038 s            | Introduced augmentation (H&V flip) |
+| Exp-4      | 40     | 0.2691     | 90.43%         | 66.8862%      | 0.6344   | 0.0008 s            | More epochs |
+RUNME | Exp-5      | 50     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Introduce rotational augmentation |
+| Exp-6      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
+| Exp-7      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 
 ### 📝 Observations & Adjustments
-- c
-- change padding to be center instead of top-left
+- **Exp-1** slightly worse results than A2 counterpart
+- **Exp-2** changing padding to center has worse/no effects on results
+- **Exp-3** augmentation improved test accuracy, let run for more epochs
+- **Exp-4** more epochs no good, add rotational augmentation by pm 90 deg
 
 ### 🛠️ Tested overfitting methods
+- [x] Increase epochs ❌
 - [ ] Increase dropout rate 
 - [ ] Use learning rate scheduling 
   - [ ] ReduceLROnPlateau
   - [ ] CosineAnnealing
-- [ ] Data augmentation (`torchvision.transform`)
-- [ ] Reduce number of filters or layers (A2→A3)
+- [x] Data augmentation (`torchvision.transform`) ✅
