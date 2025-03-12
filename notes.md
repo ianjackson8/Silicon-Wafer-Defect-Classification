@@ -53,8 +53,9 @@ Table of Contents
 | Exp-7      | 20     | 0.1616     | 94.36%         | 68.7611%      | 0.6735   | 0.0016 s            | Increased epochs |
 | **Exp-8**  | 30     | 0.0532     | 98.21%         | 69.2931%      | 0.7028   | 0.0089 s            | Increased epochs |
 | Exp-9      | 40     | 0.0494     | 98.33%         | 68.8118%      | 0.6986   | 0.0050 s            | Increased epochs |
-| Exp-10     | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Introduce augmentation (H&V flip, pm 90 deg) |
+| Exp-10     | 75     | 0.7372     | 71.35%         | 62.7185%      | 0.5966   | 0.0052 s            | Introduce augmentation (H&V flip, pm 90 deg), LR/100 at 50 epoch, removed scheduler |
 | Exp-11     | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
+| Exp-12     | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 
 ### 📝 Observations & Adjustments
 - **Exp-1** Initial test: accuracy, F1, and inference time too low → double epochs
@@ -62,6 +63,7 @@ Table of Contents
 - **Exp-3 → Exp-5** Test anti-overfitting methods
 - **Exp-6** Try all overfitting methods in one
 - **Exp-7 → Exp-9** Increase epochs until decrease in accuracy
+- **Exp-10** Introduce augmentation, gets stuck in local min. Removed LR scheduling, 75 epoch. Train & Test accuracy closer
 
 ### 🛠️ Tested overfitting methods
 - [x] Increase dropout rate ✅
@@ -70,9 +72,8 @@ Table of Contents
   - [x] StepLR ✅
   - [ ] ReduceLROnPlateau
   - [ ] CosineAnnealing
-- [ ] Data augmentation (`torchvision.transform`)
+- [x] Data augmentation (`torchvision.transform`)
 - [x] Reduce number of filters or layers (A1→A2)
-- [ ] Increase number of filters or layers (A1→A3)
 
 ## Model A2
 ### 🏗️ Model Architecture
@@ -113,7 +114,7 @@ Table of Contents
 | Exp-2      | 30     | 0.2120     | 91.71%         | 65.6575%      | 0.6220   | 0.0007 s            | change padding to center |
 | **Exp-3**  | 30     | 0.2234     | 91.85%         | 67.2536%      | 0.6424   | 0.0038 s            | Introduced augmentation (H&V flip) |
 | Exp-4      | 40     | 0.2691     | 90.43%         | 66.8862%      | 0.6344   | 0.0008 s            | More epochs |
-RUNME | Exp-5      | 50     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Introduce rotational augmentation |
+| Exp-5      | 50     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Introduce rotational augmentation |
 | Exp-6      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 | Exp-7      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 
