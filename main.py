@@ -33,8 +33,9 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classifi
 from torchsummary import summary
 
 #== Global Variables ==#
-NUM_EPOCHS = 30
-CUR_MODEL = 'saved_models/model_A2-exp1.pth'
+NUM_EPOCHS = 50
+# CUR_MODEL = 'saved_models/model_A1-exp9.pth'
+CUR_MODEL = '/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_A2-exp5.pth'
 
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
@@ -55,7 +56,8 @@ class WaferDataset(Dataset):
         # Fx Image Shape: Ensure correct channel-first format (1, 256, 256)
         wafer_img = np.array(row['tensor'])  # Convert to NumPy array
         wafer_img = torch.tensor(wafer_img, dtype=torch.float32)  # Convert to tensor
-        wafer_img = wafer_img.permute(2, 0, 1)  # Convert from (H, W, C) -> (C, H, W)
+        # when on HPC, dont need permute?
+        # wafer_img = wafer_img.permute(2, 0, 1)  # Convert from (H, W, C) -> (C, H, W)
         
         # Fx Labels: Convert from one-hot encoding to class indices
         label = torch.tensor(row['failureTypeVector'], dtype=torch.float32)  # Convert to tensor
@@ -346,19 +348,23 @@ def main(args):
     #-- STEP 2: Prepare Model --#
     # initialize the model
     print("[i] Initializing model")
-    model = WaferCNN_A2(num_classes=8)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[i] Using device: {device}")
+
+    model = WaferCNN_A2(num_classes=8).to(device)
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
 
-    # define scheduler (Reduce LR by 50% every 5 epochs)
+    # define scheduler (Reduce LR by 50% every 10 epochs)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
     train_dataset = WaferDataset(df=train_df, train=True)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
 
     # visualize model 
     if args.visualize:
@@ -366,7 +372,7 @@ def main(args):
         summary(model, input_size=(1, 256, 256))
         x = torch.randn(1, 1, 256, 256)
         y = model(x)
-        make_dot(y, params=dict(model.named_parameters())).render("model_A2", format="png")
+        make_dot(y, params=dict(model.named_parameters())).render("model_A1", format="png")
         quit()
 
     #-- STEP 3: Train Model --#
@@ -378,7 +384,14 @@ def main(args):
             model.train()
             running_loss, correct, total = 0.0, 0, 0
 
+            # reduce LR by x10% after 50 epocs
+            if epoch == 50:
+                for param_group in optimizer.param_groups:
+                    param_group["lr"] = 1e-4
+
             for batch_idx, (images, labels) in enumerate(train_loader):
+                images, labels = images.to(device), labels.to(device)
+
                 # zero gradients
                 optimizer.zero_grad()
 
@@ -430,13 +443,15 @@ def main(args):
     # run the model on the test set
     print("[i] Running model on test set")
     test_dataset = WaferDataset(df=test_df, train=False)
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
 
     all_preds = []
     all_labels = []
 
     with torch.no_grad():
         for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+
             # measure inference time
             start_time = time.time()
             outputs = model(images)
@@ -446,8 +461,8 @@ def main(args):
 
             # get predicted classes
             _, pred = torch.max(outputs, 1)
-            all_preds.extend(pred.numpy())
-            all_labels.extend(labels.numpy())
+            all_preds.extend(pred.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
 
     # calculate accuracy and f1 score
     accuracy = accuracy_score(all_labels, all_preds)
