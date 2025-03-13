@@ -33,11 +33,23 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classifi
 from torchsummary import summary
 
 #== Global Variables ==#
-NUM_EPOCHS = 50
-# CUR_MODEL = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = '/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_A2-exp5.pth'
-
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
+
+# CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
+CUR_MODEL_PTH = '/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_A2-exp5.pth'
+CUR_MODEL = 'A2'
+
+training_params = {
+    'epochs': 50,
+    'dropout': 0.6,
+    'lr': 1e-3,
+    'weight_decay': 1e-5,
+    'scheduler': {
+        'use': True,
+        'step_size': 5,
+        'gamma': 0.5
+    }
+}
 
 #== Classes ==#
 class WaferDataset(Dataset):
@@ -119,7 +131,7 @@ class WaferCNN_A1(nn.Module):
         self.fc2 = nn.Linear(256, num_classes)     # final classification to 8 classes
 
         # Optionally, a dropout layer can be added in between fc1 and fc2:
-        self.dropout = nn.Dropout(0.6)
+        self.dropout = nn.Dropout(training_params['dropout'])
 
     def forward(self, x):
         #= Block 1 =#
@@ -189,7 +201,7 @@ class WaferCNN_A2(nn.Module):
         self.fc2 = nn.Linear(128, num_classes)     # final classification to 8 classes
 
         # Optionally, a dropout layer can be added in between fc1 and fc2:
-        self.dropout = nn.Dropout(0.6)
+        self.dropout = nn.Dropout(training_params['dropout'])
 
     def forward(self, x):
         #= Block 1 =#
@@ -352,14 +364,19 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[i] Using device: {device}")
 
-    model = WaferCNN_A2(num_classes=8).to(device)
+    # determine model and init it
+    if CUR_MODEL == 'A1': model = WaferCNN_A1(num_classes=8).to(device)
+    elif CUR_MODEL == 'A2': model = WaferCNN_A2(num_classes=8).to(device)
+    else: 
+        print(f'[E] Model {CUR_MODEL} not defined')
+        quit()
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
     # define scheduler (Reduce LR by 50% every 10 epochs)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=training_params['scheduler']['step_size'], gamma=training_params['scheduler']['gamma'])
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
@@ -376,18 +393,13 @@ def main(args):
         quit()
 
     #-- STEP 3: Train Model --#
-    if not os.path.exists(CUR_MODEL) or args.force:
+    if not os.path.exists(CUR_MODEL_PTH) or args.force:
         # training loop
         print("[i] Beginning training loop")
         start_time = time.time()
-        for epoch in range(NUM_EPOCHS):
+        for epoch in range(training_params['epochs']):
             model.train()
             running_loss, correct, total = 0.0, 0, 0
-
-            # reduce LR by x10% after 50 epocs
-            if epoch == 50:
-                for param_group in optimizer.param_groups:
-                    param_group["lr"] = 1e-4
 
             for batch_idx, (images, labels) in enumerate(train_loader):
                 images, labels = images.to(device), labels.to(device)
@@ -417,13 +429,13 @@ def main(args):
             train_acc = correct / total
 
             # step scheduler
-            scheduler.step()
+            if training_params['scheduler']['use']: scheduler.step()
 
-            print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], "
+            print(f"Epoch [{epoch+1}/{training_params['epochs']}], "
                 f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
     
         # save the model
-        torch.save(model.state_dict(), CUR_MODEL)
+        torch.save(model.state_dict(), CUR_MODEL_PTH)
         print("[i] Model training complete and saved.")
         model.eval()
 
@@ -437,7 +449,7 @@ def main(args):
     # model already trained, load
     else:
         print("[i] Loading model from file")
-        model.load_state_dict(torch.load(CUR_MODEL))
+        model.load_state_dict(torch.load(CUR_MODEL_PTH))
         model.eval()
 
     # run the model on the test set

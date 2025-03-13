@@ -114,7 +114,7 @@ Table of Contents
 | Exp-2      | 30     | 0.2120     | 91.71%         | 65.6575%      | 0.6220   | 0.0007 s            | change padding to center |
 | **Exp-3**  | 30     | 0.2234     | 91.85%         | 67.2536%      | 0.6424   | 0.0038 s            | Introduced augmentation (H&V flip) |
 | Exp-4      | 40     | 0.2691     | 90.43%         | 66.8862%      | 0.6344   | 0.0008 s            | More epochs |
-| Exp-5      | 50     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Introduce rotational augmentation |
+| Exp-5      | 50     | 0.9358     | 64.52%         | 39.9924%      | 0.3831   | 0.0046 s            | Introduce rotational augmentation |
 | Exp-6      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 | Exp-7      | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 
