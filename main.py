@@ -28,6 +28,7 @@ import seaborn as sns
 from typing import Union, List
 from bcolors import *
 from torch.utils.data import DataLoader, Dataset
+from torch.optim.swa_utils import AveragedModel, SWALR
 from torchviz import make_dot
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from torchsummary import summary
@@ -36,18 +37,23 @@ from torchsummary import summary
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL_PTH = '/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_A2-exp5.pth'
-CUR_MODEL = 'A2'
+CUR_MODEL = 'A1'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp11.pth'
 
 training_params = {
-    'epochs': 50,
+    'epochs': 75,
     'dropout': 0.6,
     'lr': 1e-3,
     'weight_decay': 1e-5,
     'scheduler': {
-        'use': True,
+        'use': False,
         'step_size': 5,
         'gamma': 0.5
+    },
+    'swa': {
+        'use': True,
+        'swa_lr': 1e-5,
+        'epoch': 65
     }
 }
 
@@ -229,6 +235,30 @@ class WaferCNN_A2(nn.Module):
 
         return x
 
+class FocalLoss(nn.Module):
+    # DOCUMENT: this class
+    def __init__(self, gamma:float = 2, reduction:str = "mean"):
+        '''
+        initialize focal loss instance
+
+        Args:
+            gamma (float): (Default 2)
+            reduction (str): (Default 'mean')
+        '''
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs: np.ndarray, targets: np.ndarray) -> float:
+        ce_loss = F.cross_entropy(inputs, targets, reduction="none")
+        pt = torch.exp(-ce_loss)
+        focal_loss = (1 - pt) ** self.gamma * ce_loss
+        
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        else:
+            return focal_loss.sum()
+
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
     '''
@@ -372,11 +402,16 @@ def main(args):
         quit()
 
     # define loss function and optimizer
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
     # define scheduler (Reduce LR by 50% every 10 epochs)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=training_params['scheduler']['step_size'], gamma=training_params['scheduler']['gamma'])
+
+    # define stochastic weight averaging (SWA)
+    swa_model = AveragedModel(model)
+    swa_scheduler = SWALR(optimizer, swa_lr=training_params['swa']['swa_lr'])
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
@@ -430,6 +465,11 @@ def main(args):
 
             # step scheduler
             if training_params['scheduler']['use']: scheduler.step()
+
+            # apple SWA (if used) for last specified epochs
+            if training_params['swa']['use'] and epoch > training_params['swa']['epoch']:
+                swa_model.update_parameters(model)
+                swa_scheduler.step()
 
             print(f"Epoch [{epoch+1}/{training_params['epochs']}], "
                 f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")

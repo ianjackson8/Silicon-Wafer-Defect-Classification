@@ -54,8 +54,8 @@ Table of Contents
 | **Exp-8**  | 30     | 0.0532     | 98.21%         | 69.2931%      | 0.7028   | 0.0089 s            | Increased epochs |
 | Exp-9      | 40     | 0.0494     | 98.33%         | 68.8118%      | 0.6986   | 0.0050 s            | Increased epochs |
 | Exp-10     | 75     | 0.7372     | 71.35%         | 62.7185%      | 0.5966   | 0.0052 s            | Introduce augmentation (H&V flip, pm 90 deg), LR/100 at 50 epoch, removed scheduler |
-| Exp-11     | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
-| Exp-12     | 30     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
+| Exp-11     | 75     | 0.4525     | 71.63%         | 65.1001%      | 0.6252   | 0.0052 s            | Use focal loss ($\gamma=2$) |
+| Exp-12     | 75     | 0.4464     | 71.76%         | 65.6068%      | 0.6355   | 0.0055 s            | Introduced SWA (lr = 1e-5) |
 
 ### 📝 Observations & Adjustments
 - **Exp-1** Initial test: accuracy, F1, and inference time too low → double epochs
