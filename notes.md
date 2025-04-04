@@ -1,10 +1,13 @@
 # Model Logs
 Definitions:
 - Model A: Convolutional Neural Network 
+- Model B: Support Vector Machine
 
 Table of Contents
 - [Model A1](#model-a1)
 - [Model A2](#model-a2)
+- [Model A3](#model-a3)
+- [Model B1](#model-b1)
 
 ## Model A1
 ### 🏗️ Model Architecture
@@ -131,3 +134,60 @@ Table of Contents
   - [ ] ReduceLROnPlateau
   - [ ] CosineAnnealing
 - [x] Data augmentation (`torchvision.transform`) ✅
+
+## Model A3
+### 🏗️ Model Architecture
+| Layer Type            | Output Shape         | Kernel/Stride | Activation | Notes                                 |
+|-----------------------|----------------------|---------------|------------|---------------------------------------|
+| Conv2D (1 → 8)        | `(8, 256, 256)`      | `3x3 / 1`     | ReLU       | Extracts low-level features           |
+| BatchNorm2D(8)        | `(8, 256, 256)`      | -             | -          | Normalizes activations                |
+| MaxPool2D             | `(8, 128, 128)`      | `2x2 / 2`     | -          | Downsamples spatial dimensions        |
+| Conv2D (8 → 16)       | `(16, 128, 128)`     | `3x3 / 1`     | ReLU       | Extracts deeper features              |
+| BatchNorm2D(16)       | `(16, 128, 128)`     | -             | -          | Improves training stability           |
+| MaxPool2D             | `(16, 64, 64)`       | `2x2 / 2`     | -          | Reduces spatial size                  |
+| Conv2D (16 → 32)      | `(32, 64, 64)`       | `3x3 / 1`     | ReLU       | Higher-level features                 |
+| BatchNorm2D(32)       | `(32, 64, 64)`       | -             | -          | Prevents internal covariate shift     |
+| MaxPool2D             | `(32, 32, 32)`       | `2x2 / 2`     | -          | Further reduces spatial dimensions    |
+| Conv2D (32 → 64)      | `(64, 32, 32)`       | `3x3 / 1`     | ReLU       | Deep features                         |
+| BatchNorm2D(64)       | `(64, 32, 32)`       | -             | -          | -                                     |
+| Dropout (0.6)         | `(64, 32, 32)`       | -             | -          | Prevents overfitting                  |
+| Fully Connected       | `(8)`                | -             | -          | Output logits                         |
+| Softmax               | `(8)`                | -             | Softmax    | Outputs class probabilities           |
+
+- Convolutional Layers: 4
+- Fully connected layers: 1
+- Activation: ReLU
+- Dropout: 0.6
+- Loss Function: Cross Entropy Loss
+- Optimizer: Adam (lr=0.001)
+
+### ⚙️ Hyperparameters
+| Parameter     | Value   |
+|---------------|---------|
+| Batch Size    | 32      |
+| Learning Rate | 0.001   |
+| Epochs        | 30      |
+| Weight Decay  | 1e-5    |
+
+### 📊 Results
+| Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
+|------------|--------|------------|----------------|---------------|----------|---------------------|-------|
+| Exp-1      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Initial test |
+| Exp-2      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
+| Exp-3      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
+| Exp-4      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
+| Exp-5      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
+
+### 📝 Observations & Adjustments
+- **Exp-1** Initial test: 
+
+### 🛠️ Tested overfitting methods
+- [ ] Increase dropout rate 
+- [ ] Add weight decay (L2 regularization) 1e-4 
+- [ ] Use learning rate scheduling 
+  - [ ] StepLR ✅
+  - [ ] ReduceLROnPlateau
+  - [ ] CosineAnnealing
+- [ ] Data augmentation (`torchvision.transform`)
+
+## Model B1

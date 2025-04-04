@@ -37,11 +37,11 @@ from torchsummary import summary
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = 'A1'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp11.pth'
+CUR_MODEL = 'A3'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
-    'epochs': 75,
+    'epochs': 30,
     'dropout': 0.6,
     'lr': 1e-3,
     'weight_decay': 1e-5,
@@ -51,7 +51,7 @@ training_params = {
         'gamma': 0.5
     },
     'swa': {
-        'use': True,
+        'use': False,
         'swa_lr': 1e-5,
         'epoch': 65
     }
@@ -174,7 +174,7 @@ class WaferCNN_A2(nn.Module):
     def __init__(self, num_classes:int=8):
         '''
         initialization of CNN for Wafer Classification
-        Model A1
+        Model A2
 
         Args:
             num_classes (int, optional): number of classes. Defaults to 8.
@@ -232,6 +232,71 @@ class WaferCNN_A2(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
+
+        return x
+
+class WaferCNN_A3(nn.Module):
+    def __init__(self, num_classes: int = 8, dropout_rate: float = 0.5):
+        '''
+        WaferCNN_A3: Deeper CNN for Wafer Classification with 4 Conv blocks
+
+        Args:
+            num_classes (int): Number of output classes.
+            dropout_rate (float): Dropout rate after FC layer.
+        '''
+        super(WaferCNN_A3, self).__init__()
+
+        # Input: 1×256×256
+
+        # Block 1: Conv2d (1 → 8) → BN → ReLU → MaxPool
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(8)
+
+        # Block 2: Conv2d (8 → 16) → BN → ReLU → MaxPool
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(16)
+
+        # Block 3: Conv2d (16 → 32) → BN → ReLU → MaxPool
+        self.conv3 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm2d(32)
+
+        # Block 4: Conv2d (32 → 64) → BN → ReLU
+        self.conv4 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn4 = nn.BatchNorm2d(64)
+
+        # Dropout
+        self.dropout = nn.Dropout(dropout_rate)
+
+        # Compute the output size after convs + pools
+        # After 3 MaxPool2d(2), input size: 256 → 128 → 64 → 32
+        # Final feature map: 64×32×32
+        self.flattened_dim = 64 * 32 * 32
+
+        # Fully Connected Layers
+        self.fc = nn.Linear(self.flattened_dim, num_classes)
+
+    def forward(self, x):
+        # Block 1
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.max_pool2d(x, 2)
+
+        # Block 2
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.max_pool2d(x, 2)
+
+        # Block 3
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.max_pool2d(x, 2)
+
+        # Block 4
+        x = F.relu(self.bn4(self.conv4(x)))
+
+        # Flatten
+        x = x.view(x.size(0), -1)
+
+        # Dropout + FC
+        x = self.dropout(x)
+        x = self.fc(x)
 
         return x
 
@@ -402,8 +467,8 @@ def main(args):
         quit()
 
     # define loss function and optimizer
-    # criterion = nn.CrossEntropyLoss()
-    criterion = FocalLoss(gamma=2.0)
+    criterion = nn.CrossEntropyLoss()
+    # criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
     # define scheduler (Reduce LR by 50% every 10 epochs)
@@ -424,7 +489,7 @@ def main(args):
         summary(model, input_size=(1, 256, 256))
         x = torch.randn(1, 1, 256, 256)
         y = model(x)
-        make_dot(y, params=dict(model.named_parameters())).render("model_A1", format="png")
+        make_dot(y, params=dict(model.named_parameters())).render(f"model_{CUR_MODEL}", format="png")
         quit()
 
     #-- STEP 3: Train Model --#
