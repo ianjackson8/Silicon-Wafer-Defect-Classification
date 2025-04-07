@@ -37,23 +37,23 @@ from torchsummary import summary
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = 'A3'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
+CUR_MODEL = 'A1'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp13.pth'
 
 training_params = {
-    'epochs': 50,
+    'epochs': 100,
     'dropout': 0.6,
     'lr': 1e-3,
     'weight_decay': 1e-5,
     'scheduler': {
-        'use': False,
-        'step_size': 5,
-        'gamma': 0.5
+        'use': True,
+        'step_size': 20,
+        'gamma': 0.75
     },
     'swa': {
-        'use': False,
+        'use': True,
         'swa_lr': 1e-5,
-        'epoch': 65
+        'epoch': 75
     }
 }
 
@@ -468,8 +468,8 @@ def main(args):
         quit()
 
     # define loss function and optimizer
-    criterion = nn.CrossEntropyLoss()
-    # criterion = FocalLoss(gamma=2.0)
+    # criterion = nn.CrossEntropyLoss()
+    criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
     # define scheduler (Reduce LR by 50% every 10 epochs)
@@ -481,7 +481,7 @@ def main(args):
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
-    train_dataset = WaferDataset(df=train_df, train=True, transform=False)
+    train_dataset = WaferDataset(df=train_df, train=True, transform=True)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
 
     # visualize model 
