@@ -172,14 +172,14 @@ Table of Contents
 ### 📊 Results
 | Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
 |------------|--------|------------|----------------|---------------|----------|---------------------|-------|
-| Exp-1      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            | Initial test |
+| Exp-1      | 50     | 0.8006     | 69.08%         | 52.2169%      | 0.4927   | 0.0047 s            | Initial test |
 | Exp-2      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 | Exp-3      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 | Exp-4      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 | Exp-5      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 
 ### 📝 Observations & Adjustments
-- **Exp-1** Initial test: 
+- **Exp-1** Initial test: increase epochs, 
 
 ### 🛠️ Tested overfitting methods
 - [ ] Increase dropout rate 
