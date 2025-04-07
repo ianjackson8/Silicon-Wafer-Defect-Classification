@@ -41,7 +41,7 @@ CUR_MODEL = 'A3'
 CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
-    'epochs': 30,
+    'epochs': 50,
     'dropout': 0.6,
     'lr': 1e-3,
     'weight_decay': 1e-5,
@@ -462,6 +462,7 @@ def main(args):
     # determine model and init it
     if CUR_MODEL == 'A1': model = WaferCNN_A1(num_classes=8).to(device)
     elif CUR_MODEL == 'A2': model = WaferCNN_A2(num_classes=8).to(device)
+    elif CUR_MODEL == 'A3': model = WaferCNN_A3(num_classes=8).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
@@ -480,7 +481,7 @@ def main(args):
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
-    train_dataset = WaferDataset(df=train_df, train=True)
+    train_dataset = WaferDataset(df=train_df, train=True, transform=False)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
 
     # visualize model 
