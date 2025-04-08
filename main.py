@@ -481,7 +481,7 @@ def main(args):
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
-    train_dataset = WaferDataset(df=train_df, train=True, transform=True)
+    train_dataset = WaferDataset(df=train_df, train=True)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
 
     # visualize model 
