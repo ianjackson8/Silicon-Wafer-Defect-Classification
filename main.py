@@ -38,7 +38,7 @@ categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Do
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
 CUR_MODEL = 'A4'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp2.pth'
 
 training_params = {
     'epochs': 150,
@@ -335,13 +335,23 @@ class WaferCNN_A4(nn.Module):
         self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
         self.bn4   = nn.BatchNorm2d(256)
 
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))  # Global Average Pooling
+        #= Block 5 =#
+        # Input: 256×16×16
+        # Output: 512×16×16 (conv), then 512×8×8 (pool)
+        self.conv5 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1)
+        self.bn5   = nn.BatchNorm2d(512)
 
-        # After the 4th block, we expect feature maps of size 256×16×16 so the flattened size is 256 * 1 * 1 = 256
+        # Squeeze-and-Excitation Block
+        self.se = SEBlock(channels=512)
+
+        # Global Average Pooling
+        self.gap = nn.AdaptiveAvgPool2d((1, 1))  
+
+        # After the 5th block, we expect feature maps of size 512×16×16 so the flattened size is 512 * 1 * 1 = 512
         
         #= Fully Connected Layers =#
         # You can reduce the dimension with one or two Dense layers
-        self.fc1 = nn.Linear(256, 128)   # from flattened feature map to 256
+        self.fc1 = nn.Linear(512, 128)   # from flattened feature map to 128
         self.fc2 = nn.Linear(128, num_classes)     # final classification to 8 classes
 
         # Optionally, a dropout layer can be added in between fc1 and fc2:
@@ -367,6 +377,14 @@ class WaferCNN_A4(nn.Module):
         # conv -> BatchNorm -> ReLU -> pool
         x = F.relu(self.bn4(self.conv4(x)))
         x = F.max_pool2d(x, 2)
+
+        #= Block 5 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn5(self.conv5(x)))
+        x = F.max_pool2d(x, 2)
+
+        # SE block
+        x = self.se(x)
 
         # GAP & Flatten
         x = self.gap(x)  # Global Average Pooling
@@ -402,6 +420,30 @@ class FocalLoss(nn.Module):
             return focal_loss.mean()
         else:
             return focal_loss.sum()
+
+class SEBlock(nn.Module):
+    # DOCUMENT: this class
+    def __init__(self, channels: int, reduction: int = 16):
+        '''
+        Squeeze-and-Excitation Block
+
+        Args:
+            channels (int): Number of input channels.
+            reduction (int): Reduction ratio for the bottleneck layer.
+        '''
+        super(SEBlock, self).__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(channels, channels // reduction),
+            nn.ReLU(),
+            nn.Linear(channels // reduction, channels),
+            nn.Sigmoid()
+        )
+    
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = F.adaptive_avg_pool2d(x, 1).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y
 
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
