@@ -37,8 +37,8 @@ from torchsummary import summary
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = 'A1'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp14.pth'
+CUR_MODEL = 'A4'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
     'epochs': 150,
@@ -300,6 +300,85 @@ class WaferCNN_A3(nn.Module):
 
         return x
 
+class WaferCNN_A4(nn.Module):
+    def __init__(self, num_classes:int=8):
+        '''
+        initialization of CNN for Wafer Classification
+        Model A4
+
+        Args:
+            num_classes (int, optional): number of classes. Defaults to 8.
+        '''
+        super(WaferCNN_A4, self).__init__()
+
+        #= Block 1 =#
+        # Input: 1×256×256
+        # Output: 32×256×256  (conv), then 32×128×128 (pool)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
+        self.bn1   = nn.BatchNorm2d(32)
+        
+        #= Block 2 =#
+        # Input: 32×128×128
+        # Output: 64×128×128 (conv), then 64×64×64 (pool)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
+        self.bn2   = nn.BatchNorm2d(64)
+        
+        #= Block 3 =#
+        # Input: 64×64×64
+        # Output: 128×64×64 (conv), then 128×32×32 (pool)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.bn3   = nn.BatchNorm2d(128)
+        
+        #= Block 4 =#
+        # Input: 128×32×32
+        # Output: 256×32×32 (conv), then 256×16×16 (pool)
+        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
+        self.bn4   = nn.BatchNorm2d(256)
+
+        self.gap = nn.AdaptiveAvgPool2d((1, 1))  # Global Average Pooling
+
+        # After the 4th block, we expect feature maps of size 256×16×16 so the flattened size is 256 * 1 * 1 = 256
+        
+        #= Fully Connected Layers =#
+        # You can reduce the dimension with one or two Dense layers
+        self.fc1 = nn.Linear(256, 128)   # from flattened feature map to 256
+        self.fc2 = nn.Linear(128, num_classes)     # final classification to 8 classes
+
+        # Optionally, a dropout layer can be added in between fc1 and fc2:
+        self.dropout = nn.Dropout(training_params['dropout'])
+
+    def forward(self, x):
+        #= Block 1 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 2 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 3 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 4 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn4(self.conv4(x)))
+        x = F.max_pool2d(x, 2)
+
+        # GAP & Flatten
+        x = self.gap(x)  # Global Average Pooling
+        x = x.view(x.size(0), -1)  # Flatten
+
+        # fully connect layers
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+
+        return x
+
 class FocalLoss(nn.Module):
     # DOCUMENT: this class
     def __init__(self, gamma:float = 2, reduction:str = "mean"):
@@ -463,6 +542,7 @@ def main(args):
     if CUR_MODEL == 'A1': model = WaferCNN_A1(num_classes=8).to(device)
     elif CUR_MODEL == 'A2': model = WaferCNN_A2(num_classes=8).to(device)
     elif CUR_MODEL == 'A3': model = WaferCNN_A3(num_classes=8).to(device)
+    elif CUR_MODEL == 'A4': model = WaferCNN_A4(num_classes=8).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
