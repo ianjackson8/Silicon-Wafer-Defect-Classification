@@ -14,6 +14,7 @@ import argparse
 import torch
 import os
 import time
+import torchexplorer
 
 import numpy as np
 import pandas as pd
@@ -33,6 +34,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torchviz import make_dot
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from torchsummary import summary
+from torchview import draw_graph
 
 #== Global Variables ==#
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
@@ -326,32 +328,37 @@ class WaferCNN_A4(nn.Module):
         #= Block 1 =#
         # Input: 1×256×256
         # Output: 32×256×256  (conv), then 32×128×128 (pool)
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
-        self.bn1   = nn.BatchNorm2d(32)
+        # self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
+        # self.bn1   = nn.BatchNorm2d(32)
+        self.conv1 = ConvBlock(in_channels=1, out_channels=32, kernel_size=3, padding=1, num_features=32, pool_size=2)
         
         #= Block 2 =#
         # Input: 32×128×128
         # Output: 64×128×128 (conv), then 64×64×64 (pool)
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        self.bn2   = nn.BatchNorm2d(64)
+        # self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
+        # self.bn2   = nn.BatchNorm2d(64)
+        self.conv2 = ConvBlock(in_channels=32, out_channels=64, kernel_size=3, padding=1, num_features=64, pool_size=2)
         
         #= Block 3 =#
         # Input: 64×64×64
         # Output: 128×64×64 (conv), then 128×32×32 (pool)
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
-        self.bn3   = nn.BatchNorm2d(128)
+        # self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        # self.bn3   = nn.BatchNorm2d(128)
+        self.conv3 = ConvBlock(in_channels=64, out_channels=128, kernel_size=3, padding=1, num_features=128, pool_size=2)
         
         #= Block 4 =#
         # Input: 128×32×32
         # Output: 256×32×32 (conv), then 256×16×16 (pool)
-        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
-        self.bn4   = nn.BatchNorm2d(256)
+        # self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
+        # self.bn4   = nn.BatchNorm2d(256)
+        self.conv4 = ConvBlock(in_channels=128, out_channels=256, kernel_size=3, padding=1, num_features=256, pool_size=2)
 
         #= Block 5 =#
         # Input: 256×16×16
         # Output: 512×16×16 (conv), then 512×8×8 (pool)
-        self.conv5 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1)
-        self.bn5   = nn.BatchNorm2d(512)
+        # self.conv5 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1)
+        # self.bn5   = nn.BatchNorm2d(512)
+        self.conv5 = ConvBlock(in_channels=256, out_channels=512, kernel_size=3, padding=1, num_features=512, pool_size=2)
 
         # Squeeze-and-Excitation Block
         self.se = SEBlock(channels=512)
@@ -372,28 +379,33 @@ class WaferCNN_A4(nn.Module):
     def forward(self, x):
         #= Block 1 =#
         # conv -> BatchNorm -> ReLU -> pool
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.max_pool2d(x, 2)
+        # x = F.relu(self.bn1(self.conv1(x)))
+        # x = F.max_pool2d(x, 2)
+        x = self.conv1(x)
 
         #= Block 2 =#
         # conv -> BatchNorm -> ReLU -> pool
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.max_pool2d(x, 2)
+        # x = F.relu(self.bn2(self.conv2(x)))
+        # x = F.max_pool2d(x, 2)
+        x = self.conv2(x)
 
         #= Block 3 =#
         # conv -> BatchNorm -> ReLU -> pool
-        x = F.relu(self.bn3(self.conv3(x)))
-        x = F.max_pool2d(x, 2)
+        # x = F.relu(self.bn3(self.conv3(x)))
+        # x = F.max_pool2d(x, 2)
+        x = self.conv3(x)
 
         #= Block 4 =#
         # conv -> BatchNorm -> ReLU -> pool
-        x = F.relu(self.bn4(self.conv4(x)))
-        x = F.max_pool2d(x, 2)
+        # x = F.relu(self.bn4(self.conv4(x)))
+        # x = F.max_pool2d(x, 2)
+        x = self.conv4(x)
 
         #= Block 5 =#
         # conv -> BatchNorm -> ReLU -> pool
-        x = F.relu(self.bn5(self.conv5(x)))
-        x = F.max_pool2d(x, 2)
+        # x = F.relu(self.bn5(self.conv5(x)))
+        # x = F.max_pool2d(x, 2)
+        x = self.conv5(x)
 
         # SE block
         x = self.se(x)
@@ -432,6 +444,23 @@ class FocalLoss(nn.Module):
             return focal_loss.mean()
         else:
             return focal_loss.sum()
+
+class ConvBlock(nn.Module):
+    # DOCUMENT: this class
+    def __init__(self, in_channels:int, out_channels:int, 
+                 kernel_size:int=3, padding:int=1, num_features:int=32,
+                 pool_size:int=2):
+        '''
+        '''
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding)
+        self.bn   = nn.BatchNorm2d(num_features)
+        self.pool = nn.MaxPool2d(kernel_size=pool_size)
+
+    def forward(self, x):
+        x = F.relu(self.bn(self.conv(x)))
+        x = self.pool(x)
+        return x
 
 class SEBlock(nn.Module):
     # DOCUMENT: this class
@@ -639,7 +668,14 @@ def main(args):
         summary(model, input_size=(1, 256, 256))
         x = torch.randn(1, 1, 256, 256)
         y = model(x)
-        make_dot(y, params=dict(model.named_parameters())).render(f"model_{CUR_MODEL}", format="png")
+        # torxhviz
+        # make_dot(y, params=dict(model.named_parameters())).render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
+
+        model_graph = draw_graph(model, input_size=(1,1,256,256), expand_nested=True)
+        model_graph.visual_graph.render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
+
+        # torchexplorer.watch(model, log_freq=1, backend='standalone')
+        # model(x).sum().backward()
         quit()
 
     #-- STEP 3: Train Model --#

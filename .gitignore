@@ -9,6 +9,7 @@ Clean_Train_WM811K.pkl
 # python things
 venv/*
 __pycache__/*
+torchexplorer_standalone/*
 
 # models
 saved_models/*
