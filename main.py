@@ -38,22 +38,22 @@ categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Do
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
 CUR_MODEL = 'A1'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp13.pth'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp14.pth'
 
 training_params = {
-    'epochs': 100,
-    'dropout': 0.6,
+    'epochs': 150,
+    'dropout': 0.4,
     'lr': 1e-3,
     'weight_decay': 1e-5,
     'scheduler': {
         'use': True,
-        'step_size': 20,
+        'step_size': 25,
         'gamma': 0.75
     },
     'swa': {
         'use': True,
         'swa_lr': 1e-5,
-        'epoch': 75
+        'epoch': 112
     }
 }
 
@@ -469,10 +469,10 @@ def main(args):
 
     # define loss function and optimizer
     # criterion = nn.CrossEntropyLoss()
-    criterion = FocalLoss(gamma=2.0)
+    criterion = FocalLoss(gamma=1.5)
     optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
-    # define scheduler (Reduce LR by 50% every 10 epochs)
+    # define scheduler
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=training_params['scheduler']['step_size'], gamma=training_params['scheduler']['gamma'])
 
     # define stochastic weight averaging (SWA)
