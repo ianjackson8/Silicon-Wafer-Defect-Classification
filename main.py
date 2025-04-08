@@ -29,6 +29,7 @@ from typing import Union, List
 from bcolors import *
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.swa_utils import AveragedModel, SWALR
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torchviz import make_dot
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from torchsummary import summary
@@ -38,22 +39,30 @@ categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Do
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
 CUR_MODEL = 'A4'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp2.pth'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp3.pth'
 
 training_params = {
-    'epochs': 150,
+    'epochs': 200,
     'dropout': 0.4,
     'lr': 1e-3,
     'weight_decay': 1e-5,
     'scheduler': {
         'use': True,
-        'step_size': 25,
-        'gamma': 0.75
+        'type': 'Cosine',
+        'StepLR': {
+            'step_size': 50,
+            'gamma': 0.75
+        },
+        'Cosine': {
+            'T_0': 10,
+            'T_mult': 2,
+            'eta_min': 1e-6
+        }
     },
     'swa': {
         'use': True,
         'swa_lr': 1e-5,
-        'epoch': 112
+        'epoch': 150
     }
 }
 
@@ -91,7 +100,10 @@ class WaferDataset(Dataset):
         return transforms.Compose([
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
-            transforms.RandomRotation(90)
+            transforms.RandomRotation(90),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2),
+            transforms.RandomAffine(degrees=15, translate=(0.05, 0.05)),
+            transforms.GaussianBlur(3)
         ])
 
 class WaferCNN_A1(nn.Module):
@@ -595,8 +607,23 @@ def main(args):
     optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
     # define scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=training_params['scheduler']['step_size'], gamma=training_params['scheduler']['gamma'])
+    if training_params['scheduler']['type'] == 'StepLR':
+        print("[i] Using StepLR scheduler")
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, 
+            step_size=training_params['scheduler']['StepLR']['step_size'], 
+            gamma=training_params['scheduler']['StepLR']['gamma']
+        )
 
+    elif training_params['scheduler']['type'] == 'Cosine':
+        print("[i] Using CosineAnnealingWarmRestarts scheduler")
+        scheduler = CosineAnnealingWarmRestarts(
+            optimizer, 
+            T_0=training_params['scheduler']['Cosine']['T_0'], 
+            T_mult=training_params['scheduler']['Cosine']['T_mult'], 
+            eta_min=training_params['scheduler']['Cosine']['eta_min']
+        )
+    
     # define stochastic weight averaging (SWA)
     swa_model = AveragedModel(model)
     swa_scheduler = SWALR(optimizer, swa_lr=training_params['swa']['swa_lr'])
@@ -652,7 +679,11 @@ def main(args):
             train_acc = correct / total
 
             # step scheduler
-            if training_params['scheduler']['use']: scheduler.step()
+            if training_params['scheduler']['use']: 
+                if training_params['scheduler']['type'] == 'StepLR':
+                    scheduler.step()
+                elif training_params['scheduler']['type'] == 'Cosine':
+                    scheduler.step(epoch + batch_idx / len(train_loader))
 
             # apple SWA (if used) for last specified epochs
             if training_params['swa']['use'] and epoch > training_params['swa']['epoch']:
