@@ -29,6 +29,7 @@ from typing import Union, List
 from bcolors import *
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.swa_utils import AveragedModel, SWALR
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torchviz import make_dot
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from torchsummary import summary
@@ -37,23 +38,31 @@ from torchsummary import summary
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = 'A1'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp13.pth'
+CUR_MODEL = 'A4'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp3.pth'
 
 training_params = {
-    'epochs': 100,
-    'dropout': 0.6,
+    'epochs': 200,
+    'dropout': 0.4,
     'lr': 1e-3,
     'weight_decay': 1e-5,
     'scheduler': {
         'use': True,
-        'step_size': 20,
-        'gamma': 0.75
+        'type': 'Cosine',
+        'StepLR': {
+            'step_size': 50,
+            'gamma': 0.75
+        },
+        'Cosine': {
+            'T_0': 10,
+            'T_mult': 2,
+            'eta_min': 1e-6
+        }
     },
     'swa': {
         'use': True,
         'swa_lr': 1e-5,
-        'epoch': 75
+        'epoch': 150
     }
 }
 
@@ -91,7 +100,10 @@ class WaferDataset(Dataset):
         return transforms.Compose([
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
-            transforms.RandomRotation(90)
+            transforms.RandomRotation(90),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2),
+            transforms.RandomAffine(degrees=15, translate=(0.05, 0.05)),
+            transforms.GaussianBlur(3)
         ])
 
 class WaferCNN_A1(nn.Module):
@@ -300,6 +312,103 @@ class WaferCNN_A3(nn.Module):
 
         return x
 
+class WaferCNN_A4(nn.Module):
+    def __init__(self, num_classes:int=8):
+        '''
+        initialization of CNN for Wafer Classification
+        Model A4
+
+        Args:
+            num_classes (int, optional): number of classes. Defaults to 8.
+        '''
+        super(WaferCNN_A4, self).__init__()
+
+        #= Block 1 =#
+        # Input: 1×256×256
+        # Output: 32×256×256  (conv), then 32×128×128 (pool)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
+        self.bn1   = nn.BatchNorm2d(32)
+        
+        #= Block 2 =#
+        # Input: 32×128×128
+        # Output: 64×128×128 (conv), then 64×64×64 (pool)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
+        self.bn2   = nn.BatchNorm2d(64)
+        
+        #= Block 3 =#
+        # Input: 64×64×64
+        # Output: 128×64×64 (conv), then 128×32×32 (pool)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.bn3   = nn.BatchNorm2d(128)
+        
+        #= Block 4 =#
+        # Input: 128×32×32
+        # Output: 256×32×32 (conv), then 256×16×16 (pool)
+        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
+        self.bn4   = nn.BatchNorm2d(256)
+
+        #= Block 5 =#
+        # Input: 256×16×16
+        # Output: 512×16×16 (conv), then 512×8×8 (pool)
+        self.conv5 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1)
+        self.bn5   = nn.BatchNorm2d(512)
+
+        # Squeeze-and-Excitation Block
+        self.se = SEBlock(channels=512)
+
+        # Global Average Pooling
+        self.gap = nn.AdaptiveAvgPool2d((1, 1))  
+
+        # After the 5th block, we expect feature maps of size 512×16×16 so the flattened size is 512 * 1 * 1 = 512
+        
+        #= Fully Connected Layers =#
+        # You can reduce the dimension with one or two Dense layers
+        self.fc1 = nn.Linear(512, 128)   # from flattened feature map to 128
+        self.fc2 = nn.Linear(128, num_classes)     # final classification to 8 classes
+
+        # Optionally, a dropout layer can be added in between fc1 and fc2:
+        self.dropout = nn.Dropout(training_params['dropout'])
+
+    def forward(self, x):
+        #= Block 1 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 2 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 3 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 4 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn4(self.conv4(x)))
+        x = F.max_pool2d(x, 2)
+
+        #= Block 5 =#
+        # conv -> BatchNorm -> ReLU -> pool
+        x = F.relu(self.bn5(self.conv5(x)))
+        x = F.max_pool2d(x, 2)
+
+        # SE block
+        x = self.se(x)
+
+        # GAP & Flatten
+        x = self.gap(x)  # Global Average Pooling
+        x = x.view(x.size(0), -1)  # Flatten
+
+        # fully connect layers
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+
+        return x
+
 class FocalLoss(nn.Module):
     # DOCUMENT: this class
     def __init__(self, gamma:float = 2, reduction:str = "mean"):
@@ -323,6 +432,30 @@ class FocalLoss(nn.Module):
             return focal_loss.mean()
         else:
             return focal_loss.sum()
+
+class SEBlock(nn.Module):
+    # DOCUMENT: this class
+    def __init__(self, channels: int, reduction: int = 16):
+        '''
+        Squeeze-and-Excitation Block
+
+        Args:
+            channels (int): Number of input channels.
+            reduction (int): Reduction ratio for the bottleneck layer.
+        '''
+        super(SEBlock, self).__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(channels, channels // reduction),
+            nn.ReLU(),
+            nn.Linear(channels // reduction, channels),
+            nn.Sigmoid()
+        )
+    
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = F.adaptive_avg_pool2d(x, 1).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y
 
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
@@ -463,25 +596,41 @@ def main(args):
     if CUR_MODEL == 'A1': model = WaferCNN_A1(num_classes=8).to(device)
     elif CUR_MODEL == 'A2': model = WaferCNN_A2(num_classes=8).to(device)
     elif CUR_MODEL == 'A3': model = WaferCNN_A3(num_classes=8).to(device)
+    elif CUR_MODEL == 'A4': model = WaferCNN_A4(num_classes=8).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
 
     # define loss function and optimizer
     # criterion = nn.CrossEntropyLoss()
-    criterion = FocalLoss(gamma=2.0)
+    criterion = FocalLoss(gamma=1.5)
     optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
-    # define scheduler (Reduce LR by 50% every 10 epochs)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=training_params['scheduler']['step_size'], gamma=training_params['scheduler']['gamma'])
+    # define scheduler
+    if training_params['scheduler']['type'] == 'StepLR':
+        print("[i] Using StepLR scheduler")
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, 
+            step_size=training_params['scheduler']['StepLR']['step_size'], 
+            gamma=training_params['scheduler']['StepLR']['gamma']
+        )
 
+    elif training_params['scheduler']['type'] == 'Cosine':
+        print("[i] Using CosineAnnealingWarmRestarts scheduler")
+        scheduler = CosineAnnealingWarmRestarts(
+            optimizer, 
+            T_0=training_params['scheduler']['Cosine']['T_0'], 
+            T_mult=training_params['scheduler']['Cosine']['T_mult'], 
+            eta_min=training_params['scheduler']['Cosine']['eta_min']
+        )
+    
     # define stochastic weight averaging (SWA)
     swa_model = AveragedModel(model)
     swa_scheduler = SWALR(optimizer, swa_lr=training_params['swa']['swa_lr'])
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
-    train_dataset = WaferDataset(df=train_df, train=True, transform=True)
+    train_dataset = WaferDataset(df=train_df, train=True)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
 
     # visualize model 
@@ -530,7 +679,11 @@ def main(args):
             train_acc = correct / total
 
             # step scheduler
-            if training_params['scheduler']['use']: scheduler.step()
+            if training_params['scheduler']['use']: 
+                if training_params['scheduler']['type'] == 'StepLR':
+                    scheduler.step()
+                elif training_params['scheduler']['type'] == 'Cosine':
+                    scheduler.step(epoch + batch_idx / len(train_loader))
 
             # apple SWA (if used) for last specified epochs
             if training_params['swa']['use'] and epoch > training_params['swa']['epoch']:
