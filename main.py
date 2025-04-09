@@ -836,7 +836,7 @@ def main(args):
                 train_loss = running_loss / total
                 train_acc = correct / total
 
-                print(f"Epoch [{epoch+1}/{training_params['epochs']}], "
+                print(f"Epoch [{epoch+1}/{training_params_B['epochs']}], "
                     f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
 
         # save the model
