@@ -32,7 +32,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torchviz import make_dot
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from torchsummary import summary
-from torchview import draw_graph
+# from torchview import draw_graph
 
 #== Global Variables ==#
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
@@ -741,8 +741,8 @@ def main(args):
         # torxhviz
         # make_dot(y, params=dict(model.named_parameters())).render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
 
-        model_graph = draw_graph(model, input_size=(1,1,256,256), expand_nested=True)
-        model_graph.visual_graph.render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
+        # model_graph = draw_graph(model, input_size=(1,1,256,256), expand_nested=True)
+        # model_graph.visual_graph.render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
 
         # torchexplorer.watch(model, log_freq=1, backend='standalone')
         # model(x).sum().backward()
