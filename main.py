@@ -14,7 +14,6 @@ import argparse
 import torch
 import os
 import time
-import torchexplorer
 
 import numpy as np
 import pandas as pd
