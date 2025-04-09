@@ -103,9 +103,9 @@ class WaferDataset(Dataset):
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
             transforms.RandomRotation(90),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2),
-            transforms.RandomAffine(degrees=15, translate=(0.05, 0.05)),
-            transforms.GaussianBlur(3)
+            # transforms.ColorJitter(brightness=0.2, contrast=0.2),
+            # transforms.RandomAffine(degrees=15, translate=(0.05, 0.05)),
+            # transforms.GaussianBlur(3)
         ])
 
 class WaferCNN_A1(nn.Module):
