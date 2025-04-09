@@ -8,6 +8,8 @@ Table of Contents
 - [Model A2](#model-a2)
 - [Model A3](#model-a3)
 - [Model B1](#model-b1)
+- [Model B2](#model-b2)
+- [Model B3](#model-b3)
 
 ## Model A1
 ### 🏗️ Model Architecture
@@ -191,3 +193,20 @@ Table of Contents
 - [ ] Data augmentation (`torchvision.transform`)
 
 ## Model B1
+Feature extraction:
+- Raw pixel flattening 
+- Histogram of Oriented Gradients (HOG)
+- Gabor Filters (Texture Analysis)
+
+Kernels
+- Radial Basis Function (RBF)
+- Polynomial
+- Sigmoid
+
+Keep in mind:
+- Standard feature vectors (zero mean, uit var)
+- Dimenionality reduction (PCA?)
+
+### 🏗️ Model Architecture
+- Raw pixel flattening
+- RBF 
