@@ -518,7 +518,7 @@ class SVM_B1(nn.Module):
         self.input_size = 256 * 256
         self.gamma = gamma
         self.centers = nn.Parameter(torch.randn(500, self.input_size))
-        self.fc = nn.Linear(100, num_classes)
+        self.fc = nn.Linear(500, num_classes)
 
     def rbf_features(self, x):
         x = x.view(x.size(0), -1)
