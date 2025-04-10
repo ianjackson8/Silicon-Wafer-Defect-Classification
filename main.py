@@ -70,6 +70,14 @@ training_params_B = {
     'epochs': 100,
     'lr': 0.01,
     'weight_decay': 0.001,
+    'scheduler': {
+        'use': True,
+        'type': 'StepLR',
+        'StepLR': {
+            'step_size': 30,
+            'gamma': 0.1
+        }
+    },
 }
 
 #== Classes ==#
@@ -505,11 +513,11 @@ class SEBlock(nn.Module):
 
 class SVM_B1(nn.Module):
     # DOCUMENT: guess what...this
-    def __init__(self, num_classes:int=8, gamma:float = 0.001):
+    def __init__(self, num_classes:int=8, gamma:float = 0.0001):
         super(SVM_B1, self).__init__()
         self.input_size = 256 * 256
         self.gamma = gamma
-        self.centers = nn.Parameter(torch.randn(100, self.input_size))
+        self.centers = nn.Parameter(torch.randn(500, self.input_size))
         self.fc = nn.Linear(100, num_classes)
 
     def rbf_features(self, x):
@@ -725,7 +733,15 @@ def main(args):
         print("[i] Using 'B' Class Model")
 
         criterion = MultiClassHingeLoss()
-        optimizer = optim.SGD(model.parameters(), lr=training_params_B['lr'], weight_decay=training_params_B['weight_decay'])
+        optimizer = optim.Adam(model.parameters(), lr=training_params_B['lr'], weight_decay=training_params_B['weight_decay'])
+
+        if training_params_B['scheduler']['type'] == 'StepLR':
+            print("[i] Using StepLR scheduler")
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer, 
+                step_size=training_params_B['scheduler']['StepLR']['step_size'], 
+                gamma=training_params_B['scheduler']['StepLR']['gamma']
+            )
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
@@ -834,6 +850,11 @@ def main(args):
 
                 train_loss = running_loss / total
                 train_acc = correct / total
+
+                # step scheduler
+                if training_params_B['scheduler']['use']: 
+                    if training_params_B['scheduler']['type'] == 'StepLR':
+                        scheduler.step()
 
                 print(f"Epoch [{epoch+1}/{training_params_B['epochs']}], "
                     f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
