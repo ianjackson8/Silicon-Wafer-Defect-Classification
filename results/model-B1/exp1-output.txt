@@ -1,0 +1,80 @@
+== Defect Detection in Semiconductor Wafers Using Image Classification ==
+[i] Loading dataset from file
+[i] Initializing model
+[i] Using device: cuda
+[i] Using 'B' Class Model
+[i] Using StepLR scheduler
+[i] Prepare dataloader
+[i] Beginning training loop
+Epoch [1/50], 	Loss: 4.5557, Accuracy: 0.4209
+Epoch [2/50], 	Loss: 4.3645, Accuracy: 0.4211
+Epoch [3/50], 	Loss: 4.1436, Accuracy: 0.4466
+Epoch [4/50], 	Loss: 4.2532, Accuracy: 0.4364
+Epoch [5/50], 	Loss: 4.1132, Accuracy: 0.4453
+Epoch [6/50], 	Loss: 3.9886, Accuracy: 0.4525
+Epoch [7/50], 	Loss: 4.1987, Accuracy: 0.4474
+Epoch [8/50], 	Loss: 4.1327, Accuracy: 0.4499
+Epoch [9/50], 	Loss: 4.1567, Accuracy: 0.4493
+Epoch [10/50], 	Loss: 4.0759, Accuracy: 0.4596
+Epoch [11/50], 	Loss: 4.1266, Accuracy: 0.4549
+Epoch [12/50], 	Loss: 4.0536, Accuracy: 0.4668
+Epoch [13/50], 	Loss: 3.9100, Accuracy: 0.4694
+Epoch [14/50], 	Loss: 4.1461, Accuracy: 0.4538
+Epoch [15/50], 	Loss: 3.9764, Accuracy: 0.4715
+Epoch [16/50], 	Loss: 4.1288, Accuracy: 0.4609
+Epoch [17/50], 	Loss: 3.8093, Accuracy: 0.4820
+Epoch [18/50], 	Loss: 3.9411, Accuracy: 0.4778
+Epoch [19/50], 	Loss: 4.2289, Accuracy: 0.4573
+Epoch [20/50], 	Loss: 3.9305, Accuracy: 0.4815
+Epoch [21/50], 	Loss: 3.9823, Accuracy: 0.4746
+Epoch [22/50], 	Loss: 3.9520, Accuracy: 0.4768
+Epoch [23/50], 	Loss: 3.8988, Accuracy: 0.4685
+Epoch [24/50], 	Loss: 4.1078, Accuracy: 0.4696
+Epoch [25/50], 	Loss: 4.0275, Accuracy: 0.4702
+Epoch [26/50], 	Loss: 3.9973, Accuracy: 0.4848
+Epoch [27/50], 	Loss: 3.9624, Accuracy: 0.4810
+Epoch [28/50], 	Loss: 3.8770, Accuracy: 0.4895
+Epoch [29/50], 	Loss: 4.1064, Accuracy: 0.4767
+Epoch [30/50], 	Loss: 4.0511, Accuracy: 0.4713
+Epoch [31/50], 	Loss: 2.7275, Accuracy: 0.5846
+Epoch [32/50], 	Loss: 2.7455, Accuracy: 0.5707
+Epoch [33/50], 	Loss: 2.7752, Accuracy: 0.5665
+Epoch [34/50], 	Loss: 2.7600, Accuracy: 0.5740
+Epoch [35/50], 	Loss: 2.7538, Accuracy: 0.5772
+Epoch [36/50], 	Loss: 2.7714, Accuracy: 0.5716
+Epoch [37/50], 	Loss: 2.7657, Accuracy: 0.5667
+Epoch [38/50], 	Loss: 2.7590, Accuracy: 0.5702
+Epoch [39/50], 	Loss: 2.7855, Accuracy: 0.5683
+Epoch [40/50], 	Loss: 2.7684, Accuracy: 0.5699
+Epoch [41/50], 	Loss: 2.7507, Accuracy: 0.5682
+Epoch [42/50], 	Loss: 2.7487, Accuracy: 0.5716
+Epoch [43/50], 	Loss: 2.7426, Accuracy: 0.5717
+Epoch [44/50], 	Loss: 2.7664, Accuracy: 0.5667
+Epoch [45/50], 	Loss: 2.7695, Accuracy: 0.5665
+Epoch [46/50], 	Loss: 2.7421, Accuracy: 0.5732
+Epoch [47/50], 	Loss: 2.7475, Accuracy: 0.5687
+Epoch [48/50], 	Loss: 2.7591, Accuracy: 0.5774
+Epoch [49/50], 	Loss: 2.7440, Accuracy: 0.5702
+Epoch [50/50], 	Loss: 2.7550, Accuracy: 0.5673
+[i] Model training complete and saved.
+[i] Total training time: 01:15:58
+[i] Running model on test set
+	Accuracy: 15.1634%
+	F1 Score: 0.0764
+	Avg Inference Time/batch: 0.0003 seconds
+	Per-Class Accuracy Report:
+              precision    recall  f1-score   support
+
+   Edge-Ring       0.44      0.34      0.38      1126
+      Center       0.12      0.98      0.21       832
+    Edge-Loc       0.00      0.00      0.00      2772
+         Loc       0.00      0.00      0.00      1973
+      Random       0.00      0.00      0.00       257
+     Scratch       0.00      0.00      0.00       693
+       Donut       0.00      0.00      0.00       146
+   Near-full       0.00      0.00      0.00        95
+
+    accuracy                           0.15      7894
+   macro avg       0.07      0.16      0.07      7894
+weighted avg       0.07      0.15      0.08      7894
+

@@ -67,7 +67,7 @@ training_params = {
 }
 
 training_params_B = {
-    'epochs': 100,
+    'epochs': 50,
     'lr': 0.01,
     'weight_decay': 0.001,
     'scheduler': {
