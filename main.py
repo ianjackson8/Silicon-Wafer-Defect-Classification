@@ -38,7 +38,7 @@ from torchsummary import summary
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = 'B1'
+CUR_MODEL = 'B2'
 CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
@@ -74,7 +74,7 @@ training_params_B = {
         'use': True,
         'type': 'StepLR',
         'StepLR': {
-            'step_size': 30,
+            'step_size': 25,
             'gamma': 0.1
         }
     },
@@ -534,6 +534,39 @@ class SVM_B1(nn.Module):
         out = self.fc(rbf_out)
         return out
 
+class SVM_B2(nn.Module):
+    # DOCUMENT: guess what...this
+    def __init__(self, num_classes: int = 8, gamma: float = 0.0001, patch_size: int = 8):
+        super(SVM_B2, self).__init__()
+        self.patch_size = patch_size
+        self.pooled_size = 256 // patch_size  # e.g., 32 if patch_size=8
+        self.input_size = self.pooled_size * self.pooled_size  # 32x32 = 1024
+        self.gamma = gamma
+        self.centers = nn.Parameter(torch.randn(500, self.input_size))
+        self.fc = nn.Linear(500, num_classes)
+
+    def patch_average(self, x):
+        # Input: (batch_size, 1, 256, 256)
+        x = F.avg_pool2d(x, kernel_size=self.patch_size, stride=self.patch_size)
+        x = x.view(x.size(0), -1)  # Flatten to (batch_size, pooled_size^2)
+        return x
+
+    def rbf_features(self, x):
+        # x = x.view(x.size(0), -1)
+        x = self.patch_average(x)
+        x_expanded = x.unsqueeze(1)  # (batch_size, 1, input_size)
+        centers_expanded = self.centers.unsqueeze(0)  # (1, num_centers, input_size)
+        diff = x_expanded - centers_expanded
+        dist_sq = (diff ** 2).sum(dim=2)
+        rbf = torch.exp(-self.gamma * dist_sq)
+        return rbf
+    
+    def forward(self, x):
+        rbf_out = self.rbf_features(x)
+        out = self.fc(rbf_out)
+        return out
+
+
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
     '''
@@ -690,6 +723,7 @@ def main(args):
     elif CUR_MODEL == 'A3': model = WaferCNN_A3(num_classes=8).to(device)
     elif CUR_MODEL == 'A4': model = WaferCNN_A4(num_classes=8).to(device)
     elif CUR_MODEL == 'B1': model = SVM_B1(num_classes=8).to(device)
+    elif CUR_MODEL == 'B2': model = SVM_B2(num_classes=8).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
@@ -728,7 +762,7 @@ def main(args):
         swa_model = AveragedModel(model)
         swa_scheduler = SWALR(optimizer, swa_lr=training_params['swa']['swa_lr'])
 
-    #- STEP 2.a: Preparation for SVM Models -#
+    #- STEP 2.b: Preparation for SVM Models -#
     elif CUR_MODEL[0] == 'B':
         print("[i] Using 'B' Class Model")
 

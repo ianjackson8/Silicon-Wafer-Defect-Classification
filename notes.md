@@ -7,6 +7,7 @@ Table of Contents
 - [Model A1](#model-a1)
 - [Model A2](#model-a2)
 - [Model A3](#model-a3)
+- [Model A4](#model-a4)
 - [Model B1](#model-b1)
 - [Model B2](#model-b2)
 - [Model B3](#model-b3)
@@ -175,24 +176,57 @@ Table of Contents
 | Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
 |------------|--------|------------|----------------|---------------|----------|---------------------|-------|
 | Exp-1      | 50     | 0.8006     | 69.08%         | 52.2169%      | 0.4927   | 0.0047 s            | Initial test |
-| Exp-2      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
-| Exp-3      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
-| Exp-4      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
-| Exp-5      | 00     | 0.0000     | 00.00%         | 00.0000%      | 0.0000   | 0.0000 s            |  |
 
-### 📝 Observations & Adjustments
-- **Exp-1** Initial test: increase epochs, 
+## Model A4
+### 🏗️ Model Architecture: WaferCNN_A4
+| Layer Type             | Output Shape        | Kernel/Stride | Activation | Notes                                          |
+|------------------------|---------------------|---------------|------------|------------------------------------------------|
+| Conv2D (1 → 32)         | `(32, 256, 256)`     | `3x3 / 1`     | ReLU       | Initial feature extraction                    |
+| BatchNorm2D(32)         | `(32, 256, 256)`     | -             | -          | Normalizes activation outputs                 |
+| MaxPool2D               | `(32, 128, 128)`     | `2x2 / 2`     | -          | Downsamples spatial dimensions                |
+| Conv2D (32 → 64)        | `(64, 128, 128)`     | `3x3 / 1`     | ReLU       | Learns more complex features                  |
+| BatchNorm2D(64)         | `(64, 128, 128)`     | -             | -          | Enhances training stability                   |
+| MaxPool2D               | `(64, 64, 64)`       | `2x2 / 2`     | -          | Further reduces spatial dimensions            |
+| Conv2D (64 → 128)       | `(128, 64, 64)`      | `3x3 / 1`     | ReLU       | Deep hierarchical feature extraction          |
+| BatchNorm2D(128)        | `(128, 64, 64)`      | -             | -          | Mitigates internal covariate shift             |
+| MaxPool2D               | `(128, 32, 32)`      | `2x2 / 2`     | -          | Reduces feature map size                      |
+| Conv2D (128 → 256)      | `(256, 32, 32)`      | `3x3 / 1`     | ReLU       | Higher-order feature learning                 |
+| BatchNorm2D(256)        | `(256, 32, 32)`      | -             | -          | Stabilizes activations                        |
+| MaxPool2D               | `(256, 16, 16)`      | `2x2 / 2`     | -          | Further spatial downsampling                  |
+| Conv2D (256 → 512)      | `(512, 16, 16)`      | `3x3 / 1`     | ReLU       | Extraction of highly abstract features        |
+| BatchNorm2D(512)        | `(512, 16, 16)`      | -             | -          | Regularizes activation statistics             |
+| MaxPool2D               | `(512, 8, 8)`        | `2x2 / 2`     | -          | Final pooling prior to global pooling         |
+| Squeeze-and-Excitation  | `(512, 8, 8)`        | -             | Sigmoid    | Channel-wise feature recalibration            |
+| Global Average Pooling  | `(512, 1, 1)`        | -             | -          | Aggregates spatial information                |
+| Flatten                 | `(512)`              | -             | -          | Vectorizes pooled feature maps                |
+| Fully Connected (512 → 128) | `(128)`          | -             | ReLU       | Dimensionality reduction                      |
+| Dropout                 | `(128)`              | -             | -          | Regularizes and prevents overfitting          |
+| Fully Connected (128 → 8) | `(8)`              | -             | -          | Outputs class logits                          |
+| Softmax                 | `(8)`                | -             | Softmax    | Outputs class probabilities                   |
 
-### 🛠️ Tested overfitting methods
-- [ ] Increase dropout rate 
-- [ ] Add weight decay (L2 regularization) 1e-4 
-- [ ] Use learning rate scheduling 
-  - [ ] StepLR ✅
-  - [ ] ReduceLROnPlateau
-  - [ ] CosineAnnealing
-- [ ] Data augmentation (`torchvision.transform`)
+- Convolutional Layers: 5
+- Fully connected layers: 2
+- Activation: ReLU
+- Dropout: 0.4
+- Loss Function: Focal Loss
+- Optimizer: Adam (lr=0.001)
 
-## Model B1
+### ⚙️ Hyperparameters
+| Parameter     | Value   |
+|---------------|---------|
+| Batch Size    | 32      |
+| Learning Rate | 0.001   |
+| Epochs        | 200     |
+| Weight Decay  | 1e-5    |
+
+### 📊 Results
+| Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
+|------------|--------|------------|----------------|---------------|----------|---------------------|-------|
+| Exp-1      | 150    | 0.4771     | 73.08%         | 69.7872%      | 0.6865   | 0.0086 s            | Initial test |
+| **Exp-2**  | 150    | 0.4514     | 74.31%         | 72.8528%      | 0.7195   | 0.0065 s            |  |
+| Exp-3      | 200    | 0.4591     | 73.72%         | 71.8394%      | 0.7099   | 0.0065 s            |  |
+
+## B class notes
 Feature extraction:
 - Raw pixel flattening 
 - Histogram of Oriented Gradients (HOG)
@@ -207,6 +241,74 @@ Keep in mind:
 - Standard feature vectors (zero mean, uit var)
 - Dimenionality reduction (PCA?)
 
+## Model B1
 ### 🏗️ Model Architecture
-- Raw pixel flattening
-- RBF 
+| Stage             | Input Size             | Output Size           | Transformation      | Notes |
+|-------------------|-------------------------|------------------------|---------------------|-------|
+| Input Flatten     | `(batch_size, 1, 256, 256)` | `(batch_size, 65536)` | Flatten             | Image flattened to vector |
+| RBF Expansion     | `(batch_size, 65536)`    | `(batch_size, 500)`    | exp(-γ‖x-c‖²)        | Maps input into RBF feature space (500 centers) |
+| Fully Connected   | `(batch_size, 500)`      | `(batch_size, 8)`      | Linear Transformation | Outputs class scores (no softmax) |
+
+- Feature Mapping: Radial Basis Function (RBF) with γ = 0.0001
+- Number of Centers: 500
+- Fully Connected Layer: 1
+- Activation: Gaussian Kernel in RBF Layer
+- Loss Function: Multi-Class Hinge Loss
+- Optimizer: Adam (lr=0.01)
+
+### ⚙️ Hyperparameters
+| Parameter         | Value   |
+|-------------------|---------|
+| Batch Size        | 32      |
+| Learning Rate     | 0.01    |
+| Epochs            | 50      |
+| Weight Decay      | 0.001   |
+| Scheduler         | StepLR  |
+| Step Size         | 30      |
+| StepLR Gamma      | 0.1     |
+| RBF Gamma (γ)     | 0.0001  |
+
+### 📊 Results
+| Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
+|------------|--------|------------|----------------|---------------|----------|---------------------|-------|
+| Exp-1      | 50     | 2.7550     | 56.73%         | 15.1634%      | 0.0764   | 0.0003 s            | Initial test |
+
+### 📝 Observations & Adjustments
+- **Exp-1** Pixel flattening for feature extraction not the move
+
+## Model B2
+### 🏗️ Model Architecture
+| Stage             | Input Size                  | Output Size               | Transformation        | Notes |
+|-------------------|-----------------------------|---------------------------|-----------------------|-------|
+| Patch Averaging   | `(batch_size, 1, 256, 256)` | `(batch_size, 1, 32, 32)` | AvgPool2D             | Divide into 8x8 patches, average |
+| Flatten           | `(batch_size, 1, 32, 32)`   | `(batch_size, 1024)`      | Flatten               | Convert patch map to vector |
+| RBF Expansion     | `(batch_size, 1024)`        | `(batch_size, 500)`       | exp(-γ‖x-c‖²)         | Maps input into RBF feature space (500 centers) |
+| Fully Connected   | `(batch_size, 500)`         | `(batch_size, 8)`         | Linear Transformation | Outputs class scores (no softmax) |
+
+- Feature Mapping: Radial Basis Function (RBF) with γ = 0.0001
+- Number of Centers: 500
+- Fully Connected Layer: 1
+- Activation: Gaussian Kernel in RBF Layer
+- Loss Function: Multi-Class Hinge Loss
+- Optimizer: Adam (lr=0.01)
+
+### ⚙️ Hyperparameters
+# FIX hyper param
+| Parameter         | Value   |
+|-------------------|---------|
+| Batch Size        | 32      |
+| Learning Rate     | 0.01    |
+| Epochs            | 50      |
+| Weight Decay      | 0.001   |
+| Scheduler         | StepLR  |
+| Step Size         | 25      |
+| StepLR Gamma      | 0.1     |
+| RBF Gamma (γ)     | 0.0001  |
+
+### 📊 Results
+| Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
+|------------|--------|------------|----------------|---------------|----------|---------------------|-------|
+| Exp-1      | 50     | 2.7550     | 56.73%         | 15.1634%      | 0.0764   | 0.0003 s            | Initial test |
+
+### 📝 Observations & Adjustments
+- **Exp-1** 

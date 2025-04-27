@@ -2,8 +2,8 @@
 - [ ] Create final/prod version of the code
 
 # A Class Models (CNN)
-- [ ] Document Model A4
-- [ ] Document results of A4
+- [x] Document Model A4
+- [x] Document results of A4
 
 # B Class Models (SVM)
 - [ ] Document B1
