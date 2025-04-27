@@ -2,6 +2,7 @@
 Definitions:
 - Model A: Convolutional Neural Network 
 - Model B: Support Vector Machine
+- Model C: K-Nearest Neighbors
 
 Table of Contents
 - [Model A1](#model-a1)
@@ -10,7 +11,7 @@ Table of Contents
 - [Model A4](#model-a4)
 - [Model B1](#model-b1)
 - [Model B2](#model-b2)
-- [Model B3](#model-b3)
+- [Model C1](#model-c1)
 
 ## Model A1
 ### 🏗️ Model Architecture
@@ -293,7 +294,6 @@ Keep in mind:
 - Optimizer: Adam (lr=0.01)
 
 ### ⚙️ Hyperparameters
-# FIX hyper param
 | Parameter         | Value   |
 |-------------------|---------|
 | Batch Size        | 32      |
@@ -308,7 +308,19 @@ Keep in mind:
 ### 📊 Results
 | Experiment | Epochs | Train Loss | Train Accuracy | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
 |------------|--------|------------|----------------|---------------|----------|---------------------|-------|
-| Exp-1      | 50     | 2.7550     | 56.73%         | 15.1634%      | 0.0764   | 0.0003 s            | Initial test |
+| Exp-1      | 50     | 2.9893     | 48.43%         | 14.2640%      | 0.0552   | 0.0552 s            | Initial test (inference time on MBP) |
 
 ### 📝 Observations & Adjustments
-- **Exp-1** 
+- **Exp-1** sucks...come back to it
+
+## Model C1
+### 🏗️ Model Architecture
+| Component            | Shape / Purpose                     | Notes                                    |
+|----------------------|--------------------------------------|-----------------------------------------|
+| Input                | `(1, 256, 256)`                     | Grayscale wafer images                  |
+| Flatten              | `(65536,)`                          | Images are flattened before distance computation |
+| Training Data Store  | `(num_samples, 65536)`               | Stores flattened training features     |
+| Distance Calculation | `(batch_size, num_samples)`          | Compute pairwise distances to training data |
+| K Nearest Neighbors  | `(batch_size, k)`                   | Select indices of K closest samples    |
+| Voting               | `(batch_size, 8)`                   | Count votes for each class             |
+| Output               | `(batch_size, 8)`                   | Raw logits (one per class)              |
