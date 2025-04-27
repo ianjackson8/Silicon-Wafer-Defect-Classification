@@ -324,3 +324,17 @@ Keep in mind:
 | K Nearest Neighbors  | `(batch_size, k)`                   | Select indices of K closest samples    |
 | Voting               | `(batch_size, 8)`                   | Count votes for each class             |
 | Output               | `(batch_size, 8)`                   | Raw logits (one per class)              |
+
+### 📊 Results
+| Experiment | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
+|------------|---------------|----------|---------------------|-------|
+| Exp-1      | 35.9387%      | 0.3559   | 3.1748 s            | Euclidean distance, K=5 |
+| Exp-2      | 36.4581%      | 0.3516   | 9.9554 s            | Manhattan distance, K=5 |
+| Exp-3      | 27.1979%      | 0.2883   | 9.2020 s            | Cosine similarity, K=5 |
+| Exp-4      | 36.6101%      | 0.3567   | 10.3624 s           | Euclidean distance, K=2 |
+
+### 📝 Observations & Adjustments
+- **Exp-1** High inference time (need to rerun on HPC)
+- **Exp-2** Manhattan distance triples runtime, try Cosine
+- **Exp-3** Cosine produces worse results, runtime still longer; stick with Euclidean
+- **Exp-4** Dropping K helped, new additions to model?

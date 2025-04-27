@@ -1,0 +1,28 @@
+[i] Loading dataset from file
+[i] Initializing model
+[i] Using device: cpu
+[i] Using 'C' Class Model
+[i] KNN model fitted with training data
+[i] Prepare dataloader
+[i] Beginning training loop
+[i] Model training complete and saved.
+[i] Total training time: 00:00:00
+[i] Running model on test set
+	Accuracy: 36.6101%
+	F1 Score: 0.3567
+	Avg Inference Time/batch: 10.3624 seconds
+	Per-Class Accuracy Report:
+              precision    recall  f1-score   support
+
+   Edge-Ring       0.56      0.63      0.59      1126
+      Center       0.18      0.50      0.26       832
+    Edge-Loc       0.49      0.43      0.46      2772
+         Loc       0.31      0.25      0.28      1973
+      Random       0.25      0.06      0.09       257
+     Scratch       0.10      0.02      0.04       693
+       Donut       0.40      0.01      0.03       146
+   Near-full       0.75      0.53      0.62        95
+
+    accuracy                           0.37      7894
+   macro avg       0.38      0.30      0.30      7894
+weighted avg       0.38      0.37      0.36      7894

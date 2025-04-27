@@ -38,7 +38,7 @@ from torchsummary import summary
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 CUR_MODEL = 'C1'
-CUR_MODEL_PTH = f'saved_models/model_{CUR_MODEL}-exp1.pth'
+CUR_MODEL_PTH = f'saved_models/model_{CUR_MODEL}-exp4.pth'
 # CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
@@ -611,8 +611,17 @@ class KNN_C1(nn.Module):
             dists = torch.cdist(x, y, p=2)  # Euclidean distance
         elif self.distance_metric == 'manhattan':
             dists = torch.cdist(x, y, p=1)  # Manhattan (L1) distance
+        elif self.distance_metric == 'cosine':
+            # normalize x and y
+            x_norm = F.normalize(x, p=2, dim=1)
+            y_norm = F.normalize(y, p=2, dim=1)
+
+            # cosine simualrity
+            sim = torch.mm(x_norm, y_norm.t())  # (batch_size, num_train_samples)
+            dists = 1 - sim  # Convert similarity to distance
         else:
             raise ValueError(f"Unsupported distance metric: {self.distance_metric}")
+        
         return dists
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -635,7 +644,6 @@ class KNN_C1(nn.Module):
         knn_indices = torch.topk(dists, self.k, largest=False).indices  # Smallest distances
         
         # Gather the labels of nearest neighbors
-        # FIX: TypeError: only integer tensors of a single element can be converted to an index
         knn_labels = self.train_labels[knn_indices]  # (batch_size, k)
 
         # Create one-hot encoded votes
@@ -803,7 +811,7 @@ def main(args):
     elif CUR_MODEL == 'A4': model = WaferCNN_A4(num_classes=8).to(device)
     elif CUR_MODEL == 'B1': model = SVM_B1(num_classes=8).to(device)
     elif CUR_MODEL == 'B2': model = SVM_B2(num_classes=8).to(device)
-    elif CUR_MODEL == 'C1': model = KNN_C1(num_classes=8, k=5).to(device)
+    elif CUR_MODEL == 'C1': model = KNN_C1(num_classes=8, k=2).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
@@ -863,7 +871,10 @@ def main(args):
 
         # KNN does not require training, but we need to fit the model with training data
         train_features = torch.stack([torch.tensor(tensor.flatten(), dtype=torch.float32) for tensor in train_df['tensor']])
-        train_labels = train_df['failureType'].tolist()
+        train_labels = torch.tensor(
+            [vec.index(1) for vec in train_df['failureTypeVector']],
+            dtype=torch.long
+        )
         model.fit(train_features, train_labels)
 
         print("[i] KNN model fitted with training data")
