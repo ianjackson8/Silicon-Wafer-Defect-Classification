@@ -14,7 +14,6 @@ import argparse
 import torch
 import os
 import time
-import torchexplorer
 
 import numpy as np
 import pandas as pd
@@ -33,14 +32,14 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torchviz import make_dot
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from torchsummary import summary
-from torchview import draw_graph
+# from torchview import draw_graph
 
 #== Global Variables ==#
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
 # CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = 'A4'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp3.pth'
+CUR_MODEL = 'B1'
+CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
     'epochs': 200,
@@ -65,6 +64,20 @@ training_params = {
         'swa_lr': 1e-5,
         'epoch': 150
     }
+}
+
+training_params_B = {
+    'epochs': 50,
+    'lr': 0.01,
+    'weight_decay': 0.001,
+    'scheduler': {
+        'use': True,
+        'type': 'StepLR',
+        'StepLR': {
+            'step_size': 30,
+            'gamma': 0.1
+        }
+    },
 }
 
 #== Classes ==#
@@ -444,6 +457,19 @@ class FocalLoss(nn.Module):
         else:
             return focal_loss.sum()
 
+class MultiClassHingeLoss(nn.Module):
+    def __init__(self, margin=1.0):
+        super(MultiClassHingeLoss, self).__init__()
+        self.margin = margin
+
+    def forward(self, outputs, labels):
+        batch_size = outputs.size(0)
+        correct_class_scores = outputs[torch.arange(batch_size), labels].unsqueeze(1)
+        margins = torch.clamp(outputs - correct_class_scores + self.margin, min=0)
+        margins[torch.arange(batch_size), labels] = 0
+        loss = margins.sum() / batch_size
+        return loss
+
 class ConvBlock(nn.Module):
     # DOCUMENT: this class
     def __init__(self, in_channels:int, out_channels:int, 
@@ -484,6 +510,29 @@ class SEBlock(nn.Module):
         y = F.adaptive_avg_pool2d(x, 1).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
         return x * y
+
+class SVM_B1(nn.Module):
+    # DOCUMENT: guess what...this
+    def __init__(self, num_classes:int=8, gamma:float = 0.0001):
+        super(SVM_B1, self).__init__()
+        self.input_size = 256 * 256
+        self.gamma = gamma
+        self.centers = nn.Parameter(torch.randn(500, self.input_size))
+        self.fc = nn.Linear(500, num_classes)
+
+    def rbf_features(self, x):
+        x = x.view(x.size(0), -1)
+        x_expanded = x.unsqueeze(1)  # (batch_size, 1, input_size)
+        centers_expanded = self.centers.unsqueeze(0)  # (1, num_centers, input_size)
+        diff = x_expanded - centers_expanded
+        dist_sq = (diff ** 2).sum(dim=2)
+        rbf = torch.exp(-self.gamma * dist_sq)
+        return rbf
+    
+    def forward(self, x):
+        rbf_out = self.rbf_features(x)
+        out = self.fc(rbf_out)
+        return out
 
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
@@ -559,7 +608,7 @@ def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.Dat
 
     return train_df, test_df
 
-def pad_wafer_map(wafer_map_2d: List[List], target_row=256, target_col=256) -> np.array:
+def pad_wafer_map(wafer_map_2d: List[List], target_row=256, target_col=256, padding: str = "tl") -> np.array:
     '''
     pad the 2D wafer map and convert to 3D numpy array of shape (target_row, target_col, 1)
 
@@ -567,21 +616,32 @@ def pad_wafer_map(wafer_map_2d: List[List], target_row=256, target_col=256) -> n
         wafer_map_2d (List[List]): 2D wafer map
         target_row (int, optional): number of rows to pad to. Defaults to 256.
         target_cols (int, optional): number of cols to pad to. Defaults to 256.
+        padding (str, optional): padding position [tl, c]. Defaults to "tl" (top-left).
 
     Returns:
         np.array: 3D NumPy array
     '''
-    # convert to NumPy array, get cur dimensions
+    # convert to NumPy array, get current dimensions
     arr = np.array(wafer_map_2d)
-    r,c = arr.shape
+    r, c = arr.shape
 
-    # create target sized array of zeros
+    # create target-sized array of zeros
     padded_arr = np.zeros((target_row, target_col), dtype=arr.dtype)
 
-    # copy to top-left corner
-    padded_arr[:r, :c] = arr
+    if padding == "tl":
+        # copy to top-left corner
+        padded_arr[:r, :c] = arr
 
-    # add a channel dimension 
+    elif padding == "c":
+        # calculate start indices for centered placement
+        start_row = (target_row - r) // 2
+        start_col = (target_col - c) // 2
+        padded_arr[start_row:start_row + r, start_col:start_col + c] = arr
+
+    else:
+        raise ValueError("Invalid padding type. Use 'tl' for top-left or 'c' for center.")
+
+    # add a channel dimension (C, H, W)
     padded_arr = np.expand_dims(padded_arr, axis=0)
 
     return padded_arr
@@ -599,8 +659,12 @@ def main(args):
 
         # convert each waferMap into tensor
         print("[i] Padding wafer map data")
-        train_df['tensor'] = train_df['waferMap'].apply(lambda wm: pad_wafer_map(wm))
-        test_df['tensor'] = test_df['waferMap'].apply(lambda wm: pad_wafer_map(wm))
+        if CUR_MODEL[0] == 'A':
+            train_df['tensor'] = train_df['waferMap'].apply(lambda wm: pad_wafer_map(wm, padding="tl"))
+            test_df['tensor'] = test_df['waferMap'].apply(lambda wm: pad_wafer_map(wm, padding="tl"))
+        if CUR_MODEL[0] == 'B':
+            train_df['tensor'] = train_df['waferMap'].apply(lambda wm: pad_wafer_map(wm, padding="c"))
+            test_df['tensor'] = test_df['waferMap'].apply(lambda wm: pad_wafer_map(wm, padding="c"))
 
         # save dataset
         print("[i] Saving dataset to file")
@@ -625,41 +689,64 @@ def main(args):
     elif CUR_MODEL == 'A2': model = WaferCNN_A2(num_classes=8).to(device)
     elif CUR_MODEL == 'A3': model = WaferCNN_A3(num_classes=8).to(device)
     elif CUR_MODEL == 'A4': model = WaferCNN_A4(num_classes=8).to(device)
+    elif CUR_MODEL == 'B1': model = SVM_B1(num_classes=8).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
 
-    # define loss function and optimizer
-    # criterion = nn.CrossEntropyLoss()
-    criterion = FocalLoss(gamma=1.5)
-    optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
+    #- STEP 2.a: Preparation for CNN Models -#
+    if CUR_MODEL[0] == 'A':
+        print("[i] Using 'A' Class Model")
 
-    # define scheduler
-    if training_params['scheduler']['type'] == 'StepLR':
-        print("[i] Using StepLR scheduler")
-        scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, 
-            step_size=training_params['scheduler']['StepLR']['step_size'], 
-            gamma=training_params['scheduler']['StepLR']['gamma']
-        )
+        # define loss function and optimizer
+        # criterion = nn.CrossEntropyLoss()
+        criterion = FocalLoss(gamma=1.5)
+        optimizer = optim.Adam(model.parameters(), lr=training_params['lr'], weight_decay=training_params['weight_decay'])
 
-    elif training_params['scheduler']['type'] == 'Cosine':
-        print("[i] Using CosineAnnealingWarmRestarts scheduler")
-        scheduler = CosineAnnealingWarmRestarts(
-            optimizer, 
-            T_0=training_params['scheduler']['Cosine']['T_0'], 
-            T_mult=training_params['scheduler']['Cosine']['T_mult'], 
-            eta_min=training_params['scheduler']['Cosine']['eta_min']
-        )
-    
-    # define stochastic weight averaging (SWA)
-    swa_model = AveragedModel(model)
-    swa_scheduler = SWALR(optimizer, swa_lr=training_params['swa']['swa_lr'])
+        print(f"[i] Using criterion: {criterion}")
+        print(f"[i] Using optimizer: {optimizer}")
+
+        # define scheduler
+        if training_params['scheduler']['type'] == 'StepLR':
+            print("[i] Using StepLR scheduler")
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer, 
+                step_size=training_params['scheduler']['StepLR']['step_size'], 
+                gamma=training_params['scheduler']['StepLR']['gamma']
+            )
+
+        elif training_params['scheduler']['type'] == 'Cosine':
+            print("[i] Using CosineAnnealingWarmRestarts scheduler")
+            scheduler = CosineAnnealingWarmRestarts(
+                optimizer, 
+                T_0=training_params['scheduler']['Cosine']['T_0'], 
+                T_mult=training_params['scheduler']['Cosine']['T_mult'], 
+                eta_min=training_params['scheduler']['Cosine']['eta_min']
+            )
+        
+        # define stochastic weight averaging (SWA)
+        swa_model = AveragedModel(model)
+        swa_scheduler = SWALR(optimizer, swa_lr=training_params['swa']['swa_lr'])
+
+    #- STEP 2.a: Preparation for SVM Models -#
+    elif CUR_MODEL[0] == 'B':
+        print("[i] Using 'B' Class Model")
+
+        criterion = MultiClassHingeLoss()
+        optimizer = optim.Adam(model.parameters(), lr=training_params_B['lr'], weight_decay=training_params_B['weight_decay'])
+
+        if training_params_B['scheduler']['type'] == 'StepLR':
+            print("[i] Using StepLR scheduler")
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer, 
+                step_size=training_params_B['scheduler']['StepLR']['step_size'], 
+                gamma=training_params_B['scheduler']['StepLR']['gamma']
+            )
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
     train_dataset = WaferDataset(df=train_df, train=True)
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
 
     # visualize model 
     if args.visualize:
@@ -670,8 +757,8 @@ def main(args):
         # torxhviz
         # make_dot(y, params=dict(model.named_parameters())).render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
 
-        model_graph = draw_graph(model, input_size=(1,1,256,256), expand_nested=True)
-        model_graph.visual_graph.render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
+        # model_graph = draw_graph(model, input_size=(1,1,256,256), expand_nested=True)
+        # model_graph.visual_graph.render(f"results/model-{CUR_MODEL}/model_{CUR_MODEL}_diagram", format="png")
 
         # torchexplorer.watch(model, log_freq=1, backend='standalone')
         # model(x).sum().backward()
@@ -682,52 +769,96 @@ def main(args):
         # training loop
         print("[i] Beginning training loop")
         start_time = time.time()
-        for epoch in range(training_params['epochs']):
-            model.train()
-            running_loss, correct, total = 0.0, 0, 0
 
-            for batch_idx, (images, labels) in enumerate(train_loader):
-                images, labels = images.to(device), labels.to(device)
+        #- STEP 3.a: Train Model CNN -#
+        if CUR_MODEL[0] == 'A':
+            for epoch in range(training_params['epochs']):
+                model.train()
+                running_loss, correct, total = 0.0, 0, 0
 
-                # zero gradients
-                optimizer.zero_grad()
+                for batch_idx, (images, labels) in enumerate(train_loader):
+                    images, labels = images.to(device), labels.to(device)
 
-                # forward
-                outputs = model(images)
+                    # zero gradients
+                    optimizer.zero_grad()
 
-                # compute loss
-                loss = criterion(outputs, labels)
+                    # forward
+                    outputs = model(images)
 
-                # backward prop
-                loss.backward()
+                    # compute loss
+                    loss = criterion(outputs, labels)
 
-                # update params 
-                optimizer.step()
+                    # backward prop
+                    loss.backward()
 
-                # accumulate stats
-                running_loss += loss.item() * images.size(0)
-                _, predicted = torch.max(outputs, 1)
-                correct += (predicted == labels).sum().item()
-                total += labels.size(0)
+                    # update params 
+                    optimizer.step()
 
-            train_loss = running_loss / total
-            train_acc = correct / total
+                    # accumulate stats
+                    running_loss += loss.item() * images.size(0)
+                    _, predicted = torch.max(outputs, 1)
+                    correct += (predicted == labels).sum().item()
+                    total += labels.size(0)
 
-            # step scheduler
-            if training_params['scheduler']['use']: 
-                if training_params['scheduler']['type'] == 'StepLR':
-                    scheduler.step()
-                elif training_params['scheduler']['type'] == 'Cosine':
-                    scheduler.step(epoch + batch_idx / len(train_loader))
+                train_loss = running_loss / total
+                train_acc = correct / total
 
-            # apple SWA (if used) for last specified epochs
-            if training_params['swa']['use'] and epoch > training_params['swa']['epoch']:
-                swa_model.update_parameters(model)
-                swa_scheduler.step()
+                # step scheduler
+                if training_params['scheduler']['use']: 
+                    if training_params['scheduler']['type'] == 'StepLR':
+                        scheduler.step()
+                    elif training_params['scheduler']['type'] == 'Cosine':
+                        scheduler.step(epoch + batch_idx / len(train_loader))
 
-            print(f"Epoch [{epoch+1}/{training_params['epochs']}], "
-                f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
-    
+                # apple SWA (if used) for last specified epochs
+                if training_params['swa']['use'] and epoch > training_params['swa']['epoch']:
+                    swa_model.update_parameters(model)
+                    swa_scheduler.step()
+
+                print(f"Epoch [{epoch+1}/{training_params['epochs']}], "
+                    f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
+        
+        #- STEP 3.b: Train Model SVM -#
+        elif CUR_MODEL[0] == 'B':
+            for epoch in range(training_params_B['epochs']):
+                model.train()
+                running_loss, correct, total = 0.0, 0, 0
+
+                for batch_idx, (images, labels) in enumerate(train_loader):
+                    images, labels = images.to(device), labels.to(device)
+
+                    # zero gradients
+                    optimizer.zero_grad()
+
+                    # forward
+                    outputs = model(images)
+
+                    # compute loss
+                    loss = criterion(outputs, labels)
+
+                    # backward prop
+                    loss.backward()
+
+                    # update params 
+                    optimizer.step()
+
+                    # accumulate stats
+                    running_loss += loss.item() * images.size(0)
+                    _, predicted = torch.max(outputs, 1)
+                    correct += (predicted == labels).sum().item()
+                    total += labels.size(0)
+
+                train_loss = running_loss / total
+                train_acc = correct / total
+
+                # step scheduler
+                if training_params_B['scheduler']['use']: 
+                    if training_params_B['scheduler']['type'] == 'StepLR':
+                        scheduler.step()
+
+                print(f"Epoch [{epoch+1}/{training_params_B['epochs']}], "
+                    f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
+
         # save the model
         torch.save(model.state_dict(), CUR_MODEL_PTH)
         print("[i] Model training complete and saved.")
