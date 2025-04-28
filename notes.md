@@ -331,10 +331,49 @@ Keep in mind:
 | Exp-1      | 35.9387%      | 0.3559   | 3.1748 s            | Euclidean distance, K=5 |
 | Exp-2      | 36.4581%      | 0.3516   | 9.9554 s            | Manhattan distance, K=5 |
 | Exp-3      | 27.1979%      | 0.2883   | 9.2020 s            | Cosine similarity, K=5 |
-| Exp-4      | 36.6101%      | 0.3567   | 10.3624 s           | Euclidean distance, K=2 |
+| Exp-4      | 36.6101%      | 0.3567   | 10.362 s            | Euclidean distance, K=2 |
+| Exp-5      | 35.0266%      | 0.3592   | 3.5632 s            | Euclidean distance, K=1 |
+| Exp-6      | 35.6853%      | 0.3521   | 13.901 s            | Euclidean distance, K=7 |
+| Exp-7      | 35.0266%      | 0.3592   | 2.9865 s            | Euclidean distance, K=1, inverse distance weighting |
 
 ### 📝 Observations & Adjustments
 - **Exp-1** High inference time (need to rerun on HPC)
 - **Exp-2** Manhattan distance triples runtime, try Cosine
 - **Exp-3** Cosine produces worse results, runtime still longer; stick with Euclidean
 - **Exp-4** Dropping K helped, new additions to model?
+- **Exp-5** Dropping K further didn't help 
+- **Exp-6** Increasing K didnt impact much, increase runtime
+- **Exp-7** No significant impact
+
+## Model C2
+Radius based KNN
+### 🏗️ Model Architecture
+| Component              | Shape / Purpose                     | Notes                                        |
+|-------------------------|--------------------------------------|---------------------------------------------|
+| Input                  | `(1, 256, 256)`                     | Grayscale wafer images                     |
+| Flatten                | `(65536,)`                          | Images are flattened before distance computation |
+| Training Data Store    | `(num_samples, 65536)`               | Stores flattened training features         |
+| Distance Calculation   | `(batch_size, num_samples)`          | Compute pairwise distances to training data |
+| Radius Selection       | Varies per sample                   | Select all neighbors within a distance radius |
+| Fallback Selection     | `(fallback_k,)`                     | Use top-k nearest neighbors if no radius neighbors found |
+| Voting                 | `(batch_size, 8)`                   | Count votes for each class                 |
+| Output                 | `(batch_size, 8)`                   | Raw logits (one per class)                  |
+
+### 📊 Results
+| Experiment | Test Accuracy | F1-Score | Avg. Inference Time | Notes |
+|------------|---------------|----------|---------------------|-------|
+| Exp-1      | 36.4201%      | 0.3623   | 13.538 s            | r=0.5, K=5, Euclidean |
+| Exp-2      | 36.4201%      | 0.3623   | 4.1603 s            | r=1.0, K=5, Euclidean |
+| Exp-3      | 36.4201%      | 0.3623   | 18.296 s            | r=2.0, K=5, Euclidean |
+| Exp-4      | 00.0000%      | 0.0000   | 0.0000 s            |  |
+| Exp-5      | 00.0000%      | 0.0000   | 0.0000 s            |  |
+
+### 📝 Observations & Adjustments
+- **Exp-1** Initial test, nothing significantly better than C1
+- **Exp-2** Same
+- **Exp-3** Same
+- **Exp-4** 
+- **Exp-5** 
+- **Exp-6** 
+- **Exp-7** 
+

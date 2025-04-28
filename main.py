@@ -37,8 +37,8 @@ from torchsummary import summary
 #== Global Variables ==#
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
-CUR_MODEL = 'C1'
-CUR_MODEL_PTH = f'saved_models/model_{CUR_MODEL}-exp4.pth'
+CUR_MODEL = 'C2'
+CUR_MODEL_PTH = f'saved_models/model_{CUR_MODEL}-exp3.pth'
 # CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
@@ -647,11 +647,85 @@ class KNN_C1(nn.Module):
         knn_labels = self.train_labels[knn_indices]  # (batch_size, k)
 
         # Create one-hot encoded votes
+        # for i in range(self.k):
+        #     votes.scatter_add_(1, knn_labels[:, i].unsqueeze(1), torch.ones(batch_size, 1, device=x.device))
+
+        # Compute inverse distances for weighting
         votes = torch.zeros(batch_size, self.num_classes, device=x.device)
+        inv_dists = 1.0 / (dists.gather(1, knn_indices) + 1e-8)  # (batch_size, k)
+
         for i in range(self.k):
-            votes.scatter_add_(1, knn_labels[:, i].unsqueeze(1), torch.ones(batch_size, 1, device=x.device))
+            votes.scatter_add_(1, knn_labels[:, i].unsqueeze(1), inv_dists[:, i].unsqueeze(1))
 
         # Return logits (can apply softmax externally if needed)
+        return votes
+
+class KNN_C2(nn.Module):
+    '''
+    Radius-Based K-Nearest Neighbors (KNN) model.
+    
+    Args:
+        num_classes (int): Number of output classes (default: 8).
+        radius (float): Distance threshold to select neighbors.
+        distance_metric (str): Distance metric to use ('euclidean', 'manhattan') (default: 'euclidean').
+        fallback_k (int): If no neighbors within radius, fallback to KNN with this K (optional).
+    '''
+    def __init__(self, num_classes: int = 8, radius: float = 1.0, distance_metric: str = 'euclidean', fallback_k: int = 5):
+        super(KNN_C2, self).__init__()
+        self.num_classes = num_classes
+        self.radius = radius
+        self.distance_metric = distance_metric.lower()
+        self.fallback_k = fallback_k
+        
+        self.input_size = 256 * 256  # Flattened image size
+        self.train_features = None
+        self.train_labels = None
+
+    def fit(self, features: torch.Tensor, labels: torch.Tensor):
+        '''
+        Store the training data.
+        '''
+        self.train_features = features
+        self.train_labels = labels
+
+    def compute_distance(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        '''
+        Compute pairwise distance or similarity between x and y.
+        '''
+        if self.distance_metric == 'euclidean':
+            dists = torch.cdist(x, y, p=2)
+        elif self.distance_metric == 'manhattan':
+            dists = torch.cdist(x, y, p=1)
+        else:
+            raise ValueError(f"Unsupported distance metric: {self.distance_metric}")
+        return dists
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        '''
+        Predict labels for input samples.
+        '''
+        batch_size = x.size(0)
+        x = x.view(batch_size, -1)
+
+        dists = self.compute_distance(x, self.train_features)
+
+        votes = torch.zeros(batch_size, self.num_classes, device=x.device)
+
+        for idx in range(batch_size):
+            sample_dists = dists[idx]  # (num_train_samples,)
+            within_radius = (sample_dists <= self.radius).nonzero(as_tuple=False).squeeze(1)
+
+            if within_radius.numel() > 0:
+                selected_labels = self.train_labels[within_radius]
+            else:
+                # Fallback to selecting fallback_k nearest neighbors
+                knn_indices = torch.topk(sample_dists, self.fallback_k, largest=False).indices
+                selected_labels = self.train_labels[knn_indices]
+
+            # Vote
+            vote_counts = torch.bincount(selected_labels, minlength=self.num_classes)
+            votes[idx] = vote_counts
+
         return votes
 
 #== Methods ==#
@@ -811,7 +885,8 @@ def main(args):
     elif CUR_MODEL == 'A4': model = WaferCNN_A4(num_classes=8).to(device)
     elif CUR_MODEL == 'B1': model = SVM_B1(num_classes=8).to(device)
     elif CUR_MODEL == 'B2': model = SVM_B2(num_classes=8).to(device)
-    elif CUR_MODEL == 'C1': model = KNN_C1(num_classes=8, k=2).to(device)
+    elif CUR_MODEL == 'C1': model = KNN_C1(num_classes=8, k=1).to(device)
+    elif CUR_MODEL == 'C2': model = KNN_C2(num_classes=8, radius=2.0, fallback_k=5).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
