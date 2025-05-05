@@ -61,6 +61,26 @@ The approach consists of several key steps: dataset selection and preprocessing,
 
 %- Dataset Description -%
 \subsection{Dataset Description}
+The WM811K dataset is a publicly available collection of 811,457 wafer map images released by Taiwan Semiconductor Manufacturing Company (TSMC) \cite{b2}. 
+Each wafer map represents the spatial distribution of manufacturing test results on a semiconductor wafer, where pixels indicate the pass/fail status of test sites. 
+The maps are primarily used for failure pattern recognition and are formatted as 48x48 binary or grayscale images. 
+The dataset includes a mix of labeled failure patterns and defect-free samples, providing a comprehensive base for training, validation, and testing of machine learning models.
+Each sample is annotated with one of nine labels corresponding to known failure types: Center, Donut, Edge-Loc, Edge-Ring, Loc, Near-full, Random, Scratch, or None (indicating no defect). 
+
+%- Preprocessing -%
+\subsection{Preprocessing}
+
+
+%- Model Development -%
+\subsection{Model Development}
+
+
+%- Training -%
+\subsection{Training}
+
+
+%- Evaluation -%
+\subsection{Evaluation}
 
 
 %-- Results --%
@@ -77,6 +97,7 @@ The approach consists of several key steps: dataset selection and preprocessing,
 
 \begin{thebibliography}{00}
 \bibitem{b1} Y. LeCun, Y. Bengio, and G. Hinton, “Deep learning,” Nature, vol. 521, no. 7553, pp. 436–444, 2015.
+\bibitem{b2} M. -J. Wu, J. -S. R. Jang and J. -L. Chen, "Wafer Map Failure Pattern Recognition and Similarity Ranking for Large-Scale Data Sets," in IEEE Transactions on Semiconductor Manufacturing, vol. 28, no. 1, pp. 1-12, Feb. 2015, doi: 10.1109/TSM.2014.2364237. [Accessed: Feb. 10, 2025].
 % \bibitem{b2} S. Khan, M. Hayat, M. Bennamoun, F. A. Sohel, and R. Togneri, “A guide to convolutional neural networks for computer vision,” ACM Computing Surveys (CSUR), vol. 51, no. 5, pp. 1–58, 2020.
 
 \end{thebibliography}
