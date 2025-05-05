@@ -37,9 +37,9 @@ from torchsummary import summary
 #== Global Variables ==#
 categories = ['Edge-Ring', 'Center', 'Edge-Loc', 'Loc', 'Random', 'Scratch', 'Donut', 'Near-full']
 
-# CUR_MODEL_PTH = 'saved_models/model_A1-exp9.pth'
-CUR_MODEL = 'B1'
-CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
+CUR_MODEL = 'C2'
+CUR_MODEL_PTH = f'saved_models/model_{CUR_MODEL}-exp3.pth'
+# CUR_MODEL_PTH = f'/scratch/isj0001/Silicon-Wafer-Defect-Classification/saved_models/model_{CUR_MODEL}-exp1.pth'
 
 training_params = {
     'epochs': 200,
@@ -74,7 +74,7 @@ training_params_B = {
         'use': True,
         'type': 'StepLR',
         'StepLR': {
-            'step_size': 30,
+            'step_size': 25,
             'gamma': 0.1
         }
     },
@@ -534,6 +534,200 @@ class SVM_B1(nn.Module):
         out = self.fc(rbf_out)
         return out
 
+class SVM_B2(nn.Module):
+    # DOCUMENT: guess what...this
+    def __init__(self, num_classes: int = 8, gamma: float = 0.0001, patch_size: int = 8):
+        super(SVM_B2, self).__init__()
+        self.patch_size = patch_size
+        self.pooled_size = 256 // patch_size  # e.g., 32 if patch_size=8
+        self.input_size = self.pooled_size * self.pooled_size  # 32x32 = 1024
+        self.gamma = gamma
+        self.centers = nn.Parameter(torch.randn(500, self.input_size))
+        self.fc = nn.Linear(500, num_classes)
+
+    def patch_average(self, x):
+        # Input: (batch_size, 1, 256, 256)
+        x = F.avg_pool2d(x, kernel_size=self.patch_size, stride=self.patch_size)
+        x = x.view(x.size(0), -1)  # Flatten to (batch_size, pooled_size^2)
+        return x
+
+    def rbf_features(self, x):
+        # x = x.view(x.size(0), -1)
+        x = self.patch_average(x)
+        x_expanded = x.unsqueeze(1)  # (batch_size, 1, input_size)
+        centers_expanded = self.centers.unsqueeze(0)  # (1, num_centers, input_size)
+        diff = x_expanded - centers_expanded
+        dist_sq = (diff ** 2).sum(dim=2)
+        rbf = torch.exp(-self.gamma * dist_sq)
+        return rbf
+    
+    def forward(self, x):
+        rbf_out = self.rbf_features(x)
+        out = self.fc(rbf_out)
+        return out
+
+class KNN_C1(nn.Module):
+    '''
+    K-Nearest Neighbors (KNN) based pattern recognition model.
+    
+    Args:
+        num_classes (int): Number of output classes (default: 8).
+        k (int): Number of neighbors to consider (default: 5).
+        distance_metric (str): Distance metric to use ('euclidean' or 'manhattan') (default: 'euclidean').
+    '''
+    def __init__(self, num_classes: int = 8, k: int = 5, distance_metric: str = 'euclidean'):
+        super(KNN_C1, self).__init__()
+        self.num_classes = num_classes
+        self.k = k
+        self.distance_metric = distance_metric
+        
+        self.input_size = 256 * 256  # Flattened image size
+        self.train_features = None   # Placeholder for training features
+        self.train_labels = None     # Placeholder for training labels
+
+    def fit(self, features: torch.Tensor, labels: torch.Tensor):
+        '''
+        Store the training data.
+        
+        Args:
+            features (Tensor): Training features of shape (num_samples, 256*256).
+            labels (Tensor): Corresponding labels of shape (num_samples,).
+        '''
+        self.train_features = features
+        self.train_labels = labels
+
+    def compute_distance(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        '''
+        Compute pairwise distance between input x and stored training features y.
+        
+        Args:
+            x (Tensor): Test samples (batch_size, input_size).
+            y (Tensor): Train samples (num_train_samples, input_size).
+        
+        Returns:
+            Tensor: Distance matrix (batch_size, num_train_samples)
+        '''
+        if self.distance_metric == 'euclidean':
+            dists = torch.cdist(x, y, p=2)  # Euclidean distance
+        elif self.distance_metric == 'manhattan':
+            dists = torch.cdist(x, y, p=1)  # Manhattan (L1) distance
+        elif self.distance_metric == 'cosine':
+            # normalize x and y
+            x_norm = F.normalize(x, p=2, dim=1)
+            y_norm = F.normalize(y, p=2, dim=1)
+
+            # cosine simualrity
+            sim = torch.mm(x_norm, y_norm.t())  # (batch_size, num_train_samples)
+            dists = 1 - sim  # Convert similarity to distance
+        else:
+            raise ValueError(f"Unsupported distance metric: {self.distance_metric}")
+        
+        return dists
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        '''
+        Predict labels for input samples.
+        
+        Args:
+            x (Tensor): Input samples of shape (batch_size, 1, 256, 256).
+        
+        Returns:
+            Tensor: Predicted class logits (batch_size, num_classes).
+        '''
+        batch_size = x.size(0)
+        x = x.view(batch_size, -1)  # Flatten images
+        
+        # Compute distance between x and training features
+        dists = self.compute_distance(x, self.train_features)
+
+        # Find the indices of the k nearest neighbors
+        knn_indices = torch.topk(dists, self.k, largest=False).indices  # Smallest distances
+        
+        # Gather the labels of nearest neighbors
+        knn_labels = self.train_labels[knn_indices]  # (batch_size, k)
+
+        # Create one-hot encoded votes
+        # for i in range(self.k):
+        #     votes.scatter_add_(1, knn_labels[:, i].unsqueeze(1), torch.ones(batch_size, 1, device=x.device))
+
+        # Compute inverse distances for weighting
+        votes = torch.zeros(batch_size, self.num_classes, device=x.device)
+        inv_dists = 1.0 / (dists.gather(1, knn_indices) + 1e-8)  # (batch_size, k)
+
+        for i in range(self.k):
+            votes.scatter_add_(1, knn_labels[:, i].unsqueeze(1), inv_dists[:, i].unsqueeze(1))
+
+        # Return logits (can apply softmax externally if needed)
+        return votes
+
+class KNN_C2(nn.Module):
+    '''
+    Radius-Based K-Nearest Neighbors (KNN) model.
+    
+    Args:
+        num_classes (int): Number of output classes (default: 8).
+        radius (float): Distance threshold to select neighbors.
+        distance_metric (str): Distance metric to use ('euclidean', 'manhattan') (default: 'euclidean').
+        fallback_k (int): If no neighbors within radius, fallback to KNN with this K (optional).
+    '''
+    def __init__(self, num_classes: int = 8, radius: float = 1.0, distance_metric: str = 'euclidean', fallback_k: int = 5):
+        super(KNN_C2, self).__init__()
+        self.num_classes = num_classes
+        self.radius = radius
+        self.distance_metric = distance_metric.lower()
+        self.fallback_k = fallback_k
+        
+        self.input_size = 256 * 256  # Flattened image size
+        self.train_features = None
+        self.train_labels = None
+
+    def fit(self, features: torch.Tensor, labels: torch.Tensor):
+        '''
+        Store the training data.
+        '''
+        self.train_features = features
+        self.train_labels = labels
+
+    def compute_distance(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        '''
+        Compute pairwise distance or similarity between x and y.
+        '''
+        if self.distance_metric == 'euclidean':
+            dists = torch.cdist(x, y, p=2)
+        elif self.distance_metric == 'manhattan':
+            dists = torch.cdist(x, y, p=1)
+        else:
+            raise ValueError(f"Unsupported distance metric: {self.distance_metric}")
+        return dists
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        '''
+        Predict labels for input samples.
+        '''
+        batch_size = x.size(0)
+        x = x.view(batch_size, -1)
+
+        dists = self.compute_distance(x, self.train_features)
+
+        votes = torch.zeros(batch_size, self.num_classes, device=x.device)
+
+        for idx in range(batch_size):
+            sample_dists = dists[idx]  # (num_train_samples,)
+            within_radius = (sample_dists <= self.radius).nonzero(as_tuple=False).squeeze(1)
+
+            if within_radius.numel() > 0:
+                selected_labels = self.train_labels[within_radius]
+            else:
+                # Fallback to selecting fallback_k nearest neighbors
+                knn_indices = torch.topk(sample_dists, self.fallback_k, largest=False).indices
+                selected_labels = self.train_labels[knn_indices]
+
+            # Vote
+            vote_counts = torch.bincount(selected_labels, minlength=self.num_classes)
+            votes[idx] = vote_counts
+
+        return votes
+
 #== Methods ==#
 def load_dataset(loc: str, calc_type_counts: bool) -> Union[pd.DataFrame, pd.DataFrame]:
     '''
@@ -690,6 +884,9 @@ def main(args):
     elif CUR_MODEL == 'A3': model = WaferCNN_A3(num_classes=8).to(device)
     elif CUR_MODEL == 'A4': model = WaferCNN_A4(num_classes=8).to(device)
     elif CUR_MODEL == 'B1': model = SVM_B1(num_classes=8).to(device)
+    elif CUR_MODEL == 'B2': model = SVM_B2(num_classes=8).to(device)
+    elif CUR_MODEL == 'C1': model = KNN_C1(num_classes=8, k=1).to(device)
+    elif CUR_MODEL == 'C2': model = KNN_C2(num_classes=8, radius=2.0, fallback_k=5).to(device)
     else: 
         print(f'[E] Model {CUR_MODEL} not defined')
         quit()
@@ -728,7 +925,7 @@ def main(args):
         swa_model = AveragedModel(model)
         swa_scheduler = SWALR(optimizer, swa_lr=training_params['swa']['swa_lr'])
 
-    #- STEP 2.a: Preparation for SVM Models -#
+    #- STEP 2.b: Preparation for SVM Models -#
     elif CUR_MODEL[0] == 'B':
         print("[i] Using 'B' Class Model")
 
@@ -742,6 +939,24 @@ def main(args):
                 step_size=training_params_B['scheduler']['StepLR']['step_size'], 
                 gamma=training_params_B['scheduler']['StepLR']['gamma']
             )
+
+    #-- STEP 2.c: Preparation for KNN Models -#
+    elif CUR_MODEL[0] == 'C':
+        print("[i] Using 'C' Class Model")
+
+        # KNN does not require training, but we need to fit the model with training data
+        train_features = torch.stack([torch.tensor(tensor.flatten(), dtype=torch.float32) for tensor in train_df['tensor']])
+        train_labels = torch.tensor(
+            [vec.index(1) for vec in train_df['failureTypeVector']],
+            dtype=torch.long
+        )
+        model.fit(train_features, train_labels)
+
+        print("[i] KNN model fitted with training data")
+
+    else:
+        print(f"[E] Model {CUR_MODEL} not defined")
+        quit()
 
     # prepare DataLoader
     print("[i] Prepare dataloader")
@@ -859,6 +1074,15 @@ def main(args):
                 print(f"Epoch [{epoch+1}/{training_params_B['epochs']}], "
                     f"\tLoss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
 
+        #- STEP 3.c: Train Model KNN -#
+        elif CUR_MODEL[0] == 'C':
+            # KNN does not require training
+            pass
+
+        else:
+            print(f"[E] Model {CUR_MODEL} not defined")
+            quit()
+
         # save the model
         torch.save(model.state_dict(), CUR_MODEL_PTH)
         print("[i] Model training complete and saved.")
@@ -885,21 +1109,39 @@ def main(args):
     all_preds = []
     all_labels = []
 
-    with torch.no_grad():
-        for images, labels in test_loader:
-            images, labels = images.to(device), labels.to(device)
+    if CUR_MODEL[0] in ['A', 'B']:
+        with torch.no_grad():
+            for images, labels in test_loader:
+                images, labels = images.to(device), labels.to(device)
 
-            # measure inference time
-            start_time = time.time()
-            outputs = model(images)
-            end_time = time.time()
+                # measure inference time
+                start_time = time.time()
+                outputs = model(images)
+                end_time = time.time()
 
-            inference_time = end_time - start_time
+                inference_time = end_time - start_time
 
-            # get predicted classes
-            _, pred = torch.max(outputs, 1)
-            all_preds.extend(pred.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
+                # get predicted classes
+                _, pred = torch.max(outputs, 1)
+                all_preds.extend(pred.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
+
+    elif CUR_MODEL[0] == 'C':
+        with torch.no_grad():
+            for images, labels in test_loader:
+                images, labels = images.to(device), labels.to(device)
+
+                # measure inference time
+                start_time = time.time()
+                outputs = model(images)
+                end_time = time.time()
+
+                inference_time = end_time - start_time
+
+                # get predicted classes
+                _, pred = torch.max(outputs, 1)
+                all_preds.extend(pred.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
 
     # calculate accuracy and f1 score
     accuracy = accuracy_score(all_labels, all_preds)

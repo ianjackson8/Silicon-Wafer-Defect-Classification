@@ -13,6 +13,7 @@
 
 \title{
     Defect Detection in Semiconductor Wafers Using Image Classification
+    \thanks{Computational resources were provided by the WVU Research Computing Thorny Flat HPC cluster, partly funded by NSF OAC-1726534.}
 }
 
 % Authors 
@@ -25,46 +26,79 @@
 }
 
 \maketitle
+\thispagestyle{plain}
+\pagestyle{plain}
 
 \begin{abstract}
     ABSTRACT
 \end{abstract}
 
+%-- Introduction --%
 \section{Introduction}
 Defect detection is a critical process in the semiconductor manufacturing industry. 
-Traditional inspection methods often rely on manual analysis or rule-based systems, which can be time-consuming 
-and prone to human error.
-Additionally, the increasing complexity and miniaturization of semiconductor devices necessitate highly precise 
-defect detection methods to ensure manufacturing yield and device reliability.
-Semiconductor wafer defects, such as cracks, scratches, and contamination, can significantly impact the performance
-and lead to costly failures. 
-Recent advancements in deep learning and computer vision have enabled automated defect detection using image classification
-models, offering improved accuracy and efficiency \cite{b1}.
+Traditional inspection methods often rely on manual analysis or rule-based systems, which can be time-consuming and prone to human error.
+Additionally, the increasing complexity and miniaturization of semiconductor devices necessitate highly precise defect detection methods to ensure manufacturing yield and device reliability.
+Semiconductor wafer defects, such as cracks, scratches, and contamination, can significantly impact the performance and lead to costly failures. 
+Recent advancements in deep learning and computer vision have enabled automated defect detection using image classification models, offering improved accuracy and efficiency \cite{b1}.
 
-In this work, I propose a deep learning-based approach for defect detection in semiconductor wafers using image classification.
-Convolutional neural networks (CNNs) have demonstrated exceptional performance in image recognition tasks and are well
-suited for identifying defect patterns in high-resolution wafer images \cite{b2}. 
-In addition to CNNs, other paten recognition methods, such as support vector machines (SVM) and k-nearest neighbors (KNN),
-can be implemented and tested for defect classification. 
+In this work, I propose to explore and analyze deep learning-based and pattern recognition-based approaches for multi-class defect classification in semiconductor wafers. 
+Specifically, the project will investigate convolutional neural networks (CNNs), support vector machines (SVMs), and k-nearest neighbors (KNNs) for their effectiveness in classifying defects from high-resolution wafer images. 
+% CNNs, known for their outstanding performance in image recognition tasks \cite{b2}, will be a primary focus. 
+Additionally, a fusion model that integrates the strengths of these methods will be developed to further enhance classification performance.
 
+%-- Background --%
 \section{Background}
 
 
+%-- Related Work --%
 \section{Related Work} 
 
 
+%-- Approach --%
 \section{Approach} 
+This section outlines the methodology for defect detection in semiconductor wafers using image classification techniques.
+The approach consists of several key steps: dataset selection and preprocessing, model development, training, and evaluation.
+
+%- Dataset Description -%
+\subsection{Dataset Description}
+The WM811K dataset is a publicly available collection of 811,457 wafer map images released by Taiwan Semiconductor Manufacturing Company (TSMC) \cite{b2}. 
+Each wafer map represents the spatial distribution of manufacturing test results on a semiconductor wafer, where pixels indicate the pass/fail status of test sites. 
+The maps are primarily used for failure pattern recognition and are formatted as 48x48 binary or grayscale images. 
+The dataset includes a mix of labeled failure patterns and defect-free samples, providing a comprehensive base for training, validation, and testing of machine learning models.
+Each sample is annotated with one of nine labels corresponding to known failure types: Center, Donut, Edge-Loc, Edge-Ring, Loc, Near-full, Random, Scratch, or None (indicating no defect). 
+
+%- Preprocessing -%
+\subsection{Preprocessing}
 
 
+%- Model Development -%
+\subsection{Model Development}
+
+
+%- Training -%
+\subsection{Training}
+
+
+%- Evaluation -%
+\subsection{Evaluation}
+
+
+%-- Results --%
 \section{Results} 
 
 
+%-- Discussion --%
+\section{Discussion}
+
+
+%-- Conclusion --%
 \section{Conclusion}
 
 
 \begin{thebibliography}{00}
 \bibitem{b1} Y. LeCun, Y. Bengio, and G. Hinton, “Deep learning,” Nature, vol. 521, no. 7553, pp. 436–444, 2015.
-\bibitem{b2} S. Khan, M. Hayat, M. Bennamoun, F. A. Sohel, and R. Togneri, “A guide to convolutional neural networks for computer vision,” ACM Computing Surveys (CSUR), vol. 51, no. 5, pp. 1–58, 2020.
+\bibitem{b2} M. -J. Wu, J. -S. R. Jang and J. -L. Chen, "Wafer Map Failure Pattern Recognition and Similarity Ranking for Large-Scale Data Sets," in IEEE Transactions on Semiconductor Manufacturing, vol. 28, no. 1, pp. 1-12, Feb. 2015, doi: 10.1109/TSM.2014.2364237. [Accessed: Feb. 10, 2025].
+% \bibitem{b2} S. Khan, M. Hayat, M. Bennamoun, F. A. Sohel, and R. Togneri, “A guide to convolutional neural networks for computer vision,” ACM Computing Surveys (CSUR), vol. 51, no. 5, pp. 1–58, 2020.
 
 \end{thebibliography}
 \end{document}
