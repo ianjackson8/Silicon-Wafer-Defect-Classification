@@ -58,7 +58,7 @@ for ftype in selected_types:
     samples[ftype] = sample_row['waferMap']
 
 # Create a 4x2 grid of subplots.
-fig, axes = plt.subplots(4, 2, figsize=(12, 16))
+fig, axes = plt.subplots(2, 4, figsize=(16, 12))
 axes = axes.flatten()
 
 # Plot a wafer map sample for each selected failure type.

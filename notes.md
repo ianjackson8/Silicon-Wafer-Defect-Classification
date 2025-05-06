@@ -209,13 +209,13 @@ Table of Contents
 - Fully connected layers: 2
 - Activation: ReLU
 - Dropout: 0.4
-- Loss Function: Focal Loss
+- Loss Function: Focal Loss 
 - Optimizer: Adam (lr=0.001)
 
 ### ⚙️ Hyperparameters
 | Parameter     | Value   |
 |---------------|---------|
-| Batch Size    | 32      |
+| Batch Size    | 64      |
 | Learning Rate | 0.001   |
 | Epochs        | 200     |
 | Weight Decay  | 1e-5    |
